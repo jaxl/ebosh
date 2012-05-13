@@ -9,22 +9,21 @@ http://xmpp.org/extensions/xep-0124.html
 Dependencies:
 -------------
 ebosh utilizes following external erlang libraries:
-1) exmpp	- for underlying xmpp client stream managements
-2) mochiweb - for http frontend
-3) lager	- for logging
+1) exmpp	patched	for underlying xmpp client stream managements
+2) mochiweb	v2.3.1	for http frontend
+3) lager	1.0.0	for logging
 
-You MUST use exmpp from here: git://github.com/abhinavsingh/exmpp.git
-or PATCH your exmpp with this: https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c
+Do one of the following to get a compatible exmpp with ebosh:
+1) git clone git://github.com/abhinavsingh/exmpp.git
+2) or apply following patch to src/network/exmpp_session.erl file in your exmpp install
+   https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c
 
 Usage:
 ------
 git clone git://github.com/abhinavsingh/ebosh.git
-cd ebosh 
-chmod +x ebosh
-./ebosh rebar
-./ebosh deps
-./ebosh compile
-./ebosh start
+cd ebosh && chmod +x ebosh
+./ebosh rebar && ./ebosh deps
+./ebosh compile && ./ebosh start
 
 Point your bosh clients to http://127.0.0.1:9696/http-bind
 (A work in progress, yet ready for production use)
