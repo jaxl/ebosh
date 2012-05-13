@@ -1,42 +1,36 @@
 %%
 %% ebosh (Bosh Connection Manager in Erlang)
 %%
-%% Copyright (c) 2011-2012, Abhinav Singh <me@abhinavsingh.com>.
-%% All rights reserved.
+%% Copyright (c) 2011-2012, Abhinav Singh <me@abhinavsingh.com>
 %%
-%% Redistribution and use in source and binary forms, with or without
-%% modification, are permitted provided that the following conditions
-%% are met:
-%%
-%% * Redistributions of source code must retain the above copyright
-%% notice, this list of conditions and the following disclaimer.
-%%
-%% * Redistributions in binary form must reproduce the above copyright
-%% notice, this list of conditions and the following disclaimer in
-%% the documentation and/or other materials provided with the
-%% distribution.
-%%
-%% * Neither the name of Abhinav Singh nor the names of his
-%% contributors may be used to endorse or promote products derived
-%% from this software without specific prior written permission.
-%%
-%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-%% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-%% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-%% FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-%% COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-%% INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-%% BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-%% LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-%% CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRIC
-%% LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-%% ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-%% POSSIBILITY OF SUCH DAMAGE.
+%% Permission to use, copy, modify, and/or distribute this software for any
+%% purpose with or without fee is hereby granted, provided that the above
+%% copyright notice and this permission notice appear in all copies.
+%% 
+%% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+%% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+%% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+%% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+%% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+%% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%
 
 %%% -------------------------------------------------------------------
 %%% Author  : abhinavsingh
 %%% Description :
+%%%
+%%%		Web processes can directly call ebosh_session:stream(Body, ResFun, ErrFun)
+%%%		where,
+%%%			Body is raw http post BOSH <body/> string
+%%%			ResFun/1 is a function which accepts pid of underlying bosh process
+%%%			It must accept incoming messages of format {?EBOSH_RESPONSE_MSG, BoshPid, Header, Body} 
+%%%			from the underlying bosh session process, which then must be relayed to client
+%%%			ErrFun/1 is a function which accepts a 3-tuple {ResCode, Header, Body}. This will be 
+%%%			called in case passed Body string is an invalid BOSH body packet
+%%%		
+%%%		If not above, follow these instructions to use ebosh_session:
+%%%		
 %%%		Web process will start a new bosh session by calling:
 %%%		ebosh_session:start_link(Sid)
 %%%
@@ -62,7 +56,7 @@
 %%%		d) Immediately after starting bosh session, send session start pkt for
 %%%		   processing by bosh process by calling:
 %%%		   ebosh_session:stream(Sid, XmlEl)
-%%%		
+%%%
 %%% Created : May 11, 2012
 %%% -------------------------------------------------------------------
 -module(ebosh_session).
@@ -179,16 +173,48 @@ start_link(Sid) ->
 -spec stream(sid(), string()) -> ok | error.
 stream(Sid, Body) ->
 	case parse_body(Body) of
-		error ->
-			error;
-		XmlEl ->
-			stream(Sid, XmlEl, iolist_size(Body))
+		error -> error;
+		XmlEl -> stream(Sid, XmlEl, iolist_size(Body))
 	end.
 
 -spec stream(sid(), #xmlElement{}, integer()) -> ok.
-stream(Sid, XmlEl=#xmlElement{}, BodySize) ->
+stream(Sid, XmlEl, BodySize) when is_record(XmlEl, xmlElement) andalso is_integer(BodySize) ->
 	ProcName = get_proc_name(Sid),
-	gen_fsm:send_all_state_event({global, ProcName}, {stream, XmlEl, BodySize, self()}).
+	gen_fsm:send_all_state_event({global, ProcName}, {stream, XmlEl, BodySize, self()});
+
+stream(Body, ResFun, ErrFun) when is_function(ResFun) andalso is_function(ErrFun) ->
+	BodySize = iolist_size(Body),
+	case ebosh_session:parse_body(Body) of
+		error ->
+			lager:debug("invalid xml pkt ~p", [Body]),
+			ErrFun({400, [], []});
+		XmlEl ->
+			lager:debug("rcvd ~p", [Body]),
+			case ebosh_session:is_valid_session_start_pkt(XmlEl) of
+				true ->
+					%% valid session start pkt
+					Sid = ebosh_session:gen_sid(),
+					{ok, BoshPid} = ebosh_session:start_link(Sid),
+					ebosh_session:stream(Sid, XmlEl, BodySize),
+					ResFun(BoshPid);
+				false ->
+					case ebosh_session:get_attr(XmlEl, "sid") of
+						undefined ->
+							lager:debug("invalid session start pkt and sid not found in pkt ~p", [Body]),
+							ErrFun({400, [], []});
+						Sid ->
+							%% not a session start pkt and sid found
+							case ebosh_session:is_alive(Sid) of
+								false ->
+									lager:debug("sent sid ~p session not found", [Sid]),
+									ErrFun({400, [], []});
+								BoshPid ->
+									ebosh_session:stream(Sid, XmlEl, BodySize),
+									ResFun(BoshPid)
+							end
+					end
+			end
+	end.
 
 -spec parse_body(binary() | string()) -> error | #xmlElement{}.
 parse_body(Body) when is_binary(Body) ->

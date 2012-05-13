@@ -48,7 +48,7 @@ case $COMMAND in
 		-remsh $NODE \
 		-hidden
 		;;
-		
+	
 	ping)
 		echo "pinging $NODE ..."
 		$EXEC \
@@ -56,8 +56,8 @@ case $COMMAND in
 		$COOKIE_OPTS \
 		-eval \
 		"case net_adm:ping('$NODE') of \
-			pong -> io:fwrite(\"Ponged ~p ...~n\",['$NODE']); \
-			pang -> io:fwrite(\"Panged ~p ...~n\",['$NODE']) \
+			pong -> io:fwrite(\"running~n\",[]); \
+			pang -> io:fwrite(\"not running~n\",[]) \
 		end" \
 		-noshell \
 		-hidden \

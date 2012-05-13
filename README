@@ -2,18 +2,16 @@ ebosh:
 ------
 A work in progress, not yet ready for production use
 
-ebosh is a bosh (bidirectional stream over http) connection manager
-written on top of erlang otp principles.
-
-Specification about bosh can be found here: 
+ebosh is a BOSH connection manager written on top of erlang otp principles.
+Specification about BOSH can be found here:
 http://xmpp.org/extensions/xep-0124.html
 
 Dependencies:
 -------------
 ebosh utilizes following external erlang libraries:
-1) exmpp	patched	for underlying xmpp client stream managements
-2) mochiweb	v2.3.1	for http frontend
-3) lager	1.0.0	for logging
+1) exmpp	patched		for underlying xmpp client stream managements
+2) mochiweb	v2.3.1		for http frontend
+3) lager	1.0.0		for logging
 
 Do one of the following to get a compatible exmpp with ebosh:
 1) git clone git://github.com/abhinavsingh/exmpp.git
