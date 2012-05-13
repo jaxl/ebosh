@@ -119,9 +119,11 @@ handle_call({send, XmlEl}, _From, State=#state{socket=Socket}) when is_record(Xm
 	[_, Stanza] = xmerl:export_simple([XmlEl], xmerl_xml),
 	Bin = lists:flatten(Stanza),
 	exmpp_internals:gen_send(Socket, Bin),
+	lager:debug("relaying ~p to underlying stream", [Bin]),
 	{reply, ok, State};
 handle_call({send, XmlEl}, _From, State=#state{session=Session}) when is_record(XmlEl, xmlel) ->
 	exmpp_session:send_packet(Session, XmlEl),
+	lager:debug("relaying ~p to underlying stream", [XmlEl]),
 	{reply, ok, State};
 
 handle_call(Request, _From, State) ->

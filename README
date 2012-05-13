@@ -1,5 +1,7 @@
 ebosh:
 ------
+A work in progress, not yet ready for production use
+
 ebosh is a bosh (bidirectional stream over http) connection manager
 written on top of erlang otp principles.
 
@@ -20,10 +22,36 @@ Do one of the following to get a compatible exmpp with ebosh:
 
 Usage:
 ------
-git clone git://github.com/abhinavsingh/ebosh.git
-cd ebosh && chmod +x ebosh
-./ebosh rebar && ./ebosh deps
-./ebosh compile && ./ebosh start
+Clone, compile and start ebosh
+
+PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
+PROMPT> cd ebosh && chmod +x ebosh
+PROMPT> ./ebosh rebar && ./ebosh deps
+PROMPT> ./ebosh compile && ./ebosh start
+PROMPT>
 
 Point your bosh clients to http://127.0.0.1:9696/http-bind
-(A work in progress, yet ready for production use)
+Edit ebosh.config for your custom port and path
+
+Ping ebosh to test if it's running
+PROMPT> ./ebosh ping
+pinging ebosh@127.0.0.1 ...
+Ponged 'ebosh@127.0.0.1' ...
+PROMPT> 
+
+Attach to ebosh erlang console
+
+PROMPT> ./ebosh ctl
+Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
+
+Eshell V5.8.5  (abort with ^G)
+(ebosh@127.0.0.1)1>
+BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution
+^C
+PROMPT>
+
+Stop ebosh
+
+PROMPT> ./ebosh stop
+PROMPT>

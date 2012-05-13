@@ -118,6 +118,7 @@
 
 %% timeout messages
 -define(MAX_INACTIVITY_TIMEOUT_MSG, max_inactivity_timeout).
+-define(MAX_WAIT_TIMEOUT_MSG, max_wait_timeout).
 
 %% exmpp parser default options
 -define(PARSER_OPTS, 
@@ -243,7 +244,7 @@ is_alive(Sid) ->
 
 -spec get_attr(#xmlElement{}, string()) -> undefined | string().
 get_attr(XmlEl, Attr) ->
-	case xmerl_xpath:string("//@"++Attr, XmlEl) of
+	case xmerl_xpath:string("//body/@"++Attr, XmlEl) of
 		[XmlAttr] -> XmlAttr#xmlAttribute.value;
 		_ -> undefined
 	end.
@@ -315,12 +316,12 @@ handle_event({stream, XmlEl, BodySize, RcvrPid},
 			State1 = stream_data(XmlEl, State),
 			{next_state, StateName, State1};
 		
-		%% out of sequence rid received, wait till in sequence requests are rcvd
 		RcvrRid =< MaxRid andalso RcvrRid > Rid + 1 ->
+			lager:debug("out of sequence rid received, wait till in sequence requests are rcvd"),
 			ok;
 		
-		%% previously processed rid received
 		RcvrPid =< MaxRid andalso RcvrRid =:= Rid - 1 ->
+			lager:debug("previously processed rid received"),
 			ok;
 		
 		true ->
@@ -339,7 +340,12 @@ handle_sync_event(Event, _From, StateName, StateData) ->
 
 handle_info({StreamId, #received_packet{} = Pkt}, 
 			StateName, 
-			StateData=#state{rcvr_pids=[], buffer=Buffer}) ->
+			StateData=#state{rcvr_pids=[], buffer=Buffer,
+							 inactivity_tref=InactivityTRef, wait_tref=WaitTRef}) ->
+	%% got request, clear previous max inactivity timer, max wait timer
+	cancel_timer(InactivityTRef),
+	cancel_timer(WaitTRef),
+	
 	%% no rcvr in waiting, append to pending buffer for this stream
 	NewBuffer =
 	case proplists:get_value(StreamId, Buffer, undefined) of
@@ -348,10 +354,16 @@ handle_info({StreamId, #received_packet{} = Pkt},
 	end,
 	{next_state, StateName, StateData#state{buffer=NewBuffer}};
 
-handle_info({StreamId, #received_packet{raw_packet=XmlEl} = Pkt}, 
+handle_info({StreamId, #received_packet{raw_packet=XmlEl} = _Pkt}, 
 			StateName, 
 			StateData=#state{rcvr_pids=[RcvrPid | RcvrPids], buffer=Buffer,
-							 out_rate=OutRate, out_bytes=OutBytes}) ->
+							 out_rate=OutRate, out_bytes=OutBytes,
+							 max_inactivity=MaxInactivity, max_wait=MaxWait,
+							 inactivity_tref=InactivityTRef, wait_tref=WaitTRef}) ->
+	%% got request, clear previous max inactivity timer, max wait timer
+	cancel_timer(InactivityTRef),
+	cancel_timer(WaitTRef),
+	
 	%% prepend any pending buffer for this stream id
 	AllXmlEl =
 	case proplists:get_value(StreamId, Buffer, undefined) of
@@ -365,12 +377,49 @@ handle_info({StreamId, #received_packet{raw_packet=XmlEl} = Pkt},
 	
 	%% send to rcvr
 	Attrs = gen_attrs([{'xmlns:stream', ?NS_XMPP_b}, {'stream', StreamId}]),
-	SentBodySize = send_to_rcvr(RcvrPid, Attrs, AllXmlEl),
+	SentBodySize = send_body(RcvrPid, Attrs, AllXmlEl),
 	{OutRate1, _Pause} = shaper:update(OutRate, SentBodySize),
 	OutBytes1 = OutBytes + SentBodySize,
 	
-	{next_state, StateName, StateData#state{rcvr_pids=RcvrPids, buffer=NewBuffer, out_rate=OutRate1, out_bytes=OutBytes1}};
+	%% set approproate timers
+	{NInactivityTRef, NWaitTRef} =
+	case RcvrPids of
+		%% no rcvr in waiting
+		[] -> {set_timer(MaxInactivity * 1000, ?MAX_INACTIVITY_TIMEOUT_MSG), undefined};
+		%% 1 rcvr in waiting
+		[_|[]] -> {undefined, set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG)}
+	end,
+	
+	{next_state, StateName, StateData#state{rcvr_pids=RcvrPids, 
+											buffer=NewBuffer, 
+											out_rate=OutRate1, 
+											out_bytes=OutBytes1,
+											inactivity_tref=NInactivityTRef,
+											wait_tref=NWaitTRef}};
 
+handle_info(?MAX_WAIT_TIMEOUT_MSG, 
+			StateName, 
+			StateData=#state{rcvr_pids=[RcvrPid | RcvrPids],
+							 out_rate=OutRate, out_bytes=OutBytes,
+							 max_inactivity=MaxInactivity}) ->
+	%% free prev rcvr
+	lager:debug("max wait timeout"),
+	SentBodySize = send_empty_body(RcvrPid),
+	{OutRate1, _Pause} = shaper:update(OutRate, SentBodySize),
+	OutBytes1 = OutBytes + SentBodySize,
+	
+	NInactivityTRef = set_timer(MaxInactivity * 1000, ?MAX_INACTIVITY_TIMEOUT_MSG),
+	{next_state, StateName, StateData#state{inactivity_tref=NInactivityTRef,
+											rcvr_pids=RcvrPids,
+											out_rate=OutRate1, 
+											out_bytes=OutBytes1}};
+
+handle_info(?MAX_WAIT_TIMEOUT_MSG, 
+			_StateName, 
+			StateData) ->
+	lager:debug("max inactivity timeout, shutting down"),
+	{stop, ?MAX_INACTIVITY_TIMEOUT_MSG, StateData};
+	
 handle_info(Info, StateName, StateData) ->
 	lager:debug("unhandled info ~p", [Info]),
     {next_state, StateName, StateData}.
@@ -407,7 +456,7 @@ start_first_stream(XmlEl, State=#state{sid=Sid,
 	ContentType = get_attr(XmlEl, "content"),
 	
 	%% other attrs
-	Version = get_attr(XmlEl, "version"),
+	Version = get_attr(XmlEl, "xmpp:version"),
 	Rid = get_attr(XmlEl, "rid"),
 	
 	%% start stream
@@ -425,18 +474,18 @@ start_first_stream(XmlEl, State=#state{sid=Sid,
 			
 			%% send to rcvr
 			[RcvrPid|RcvrPids1] = RcvrPids,
-			SentBodySize = send_to_rcvr(RcvrPid, Attrs, StreamFeatures, [{?NS_XBOSH_s, ?NS_XBOSH_pfx}]),
+			SentBodySize = send_body(RcvrPid, Attrs, StreamFeatures, [{?NS_XBOSH_s, ?NS_XBOSH_pfx}]),
 			{OutRate1, _Pause} = shaper:update(OutRate, SentBodySize),
 			OutBytes1 = OutBytes + SentBodySize,
 			
 			%% no rcvr in waiting, set max inactivity timer
-			{ok, InactivityTRef} = timer:send_after(MaxInactivity * 1000, ?MAX_INACTIVITY_TIMEOUT_MSG),
+			NInactivityTRef = set_timer(MaxInactivity * 1000, ?MAX_INACTIVITY_TIMEOUT_MSG),
 			
 			State#state{max_wait = list_to_integer(Wait),
 						max_hold = list_to_integer(Hold),
-						inactivity_tref = InactivityTRef,
+						inactivity_tref = NInactivityTRef,
 						rid = list_to_integer(Rid),
-						ver = Ver,
+						ver = list_to_float(Ver),
 						ack = Ack,
 						content_type = ContentType,
 						streams = [{StreamId, Stream}],
@@ -449,11 +498,18 @@ start_first_stream(XmlEl, State=#state{sid=Sid,
 			State
 	end.
 
-stream_data(XmlEl, State=#state{streams=Streams, rcvr_pids=RcvrPids, inactivity_tref=InactivityTRef, buffer=Buffer}) ->
-	%% got request, clear previous max inactivity time
-	if InactivityTRef =/= undefined -> timer:cancel(InactivityTRef);
-	   true -> ok
-	end,
+stream_data(XmlEl, 
+			State=#state{streams=Streams, 
+						 rcvr_pids=RcvrPids, 
+						 inactivity_tref=InactivityTRef,
+						 max_inactivity=MaxInactivity, 
+						 wait_tref=WaitTRef, 
+						 max_wait=MaxWait,
+						 buffer=Buffer}) ->
+	lager:debug("stream data called"),
+	%% got request, clear previous max inactivity timer, max wait timer
+	cancel_timer(InactivityTRef),
+	cancel_timer(WaitTRef),
 	
 	%% case deciding attrs
 	To = get_attr(XmlEl, "to"),
@@ -475,14 +531,33 @@ stream_data(XmlEl, State=#state{streams=Streams, rcvr_pids=RcvrPids, inactivity_
 	RcvrCnt = erlang:length(RcvrPids),
 	
 	case StreamId of
+		
 		%% session terminate request
 		undefined when Type =:= "terminate" ->
-			%% flush any pending buffer
-			%% send terminated body
-			%% terminate all underlying streams
-			%% shotdown session
 			lager:debug("terminate request rcvd"),
-			ok;
+			lists:foreach(
+			  fun({_, Stream}) -> 
+					  relay_to_stream(Stream#stream.pid, Childrens),
+					  ebosh_stream:stop(Stream#stream.pid)
+			  end, Streams),
+			%% TODO: flush buffer
+			
+			Attrs = gen_attrs([{type, "terminate"}]),
+			case RcvrPids of
+				[RcvrPid|[]] ->
+					lager:debug("only one rcvr, sending terminate"),
+					send_body(RcvrPid, Attrs);
+				[RcvrPid,RcvrPid1] ->
+					lager:debug("two rcvr, freeing first"),
+					send_empty_body(RcvrPid),
+					lager:debug("sending terminate to ~p", [RcvrPid1]),
+					send_body(RcvrPid1, Attrs)
+			end,
+			
+			NInactivityTRef = set_timer(MaxInactivity * 1000, ?MAX_INACTIVITY_TIMEOUT_MSG),
+			State#state{rcvr_pids=[],
+						inactivity_tref=NInactivityTRef,
+						wait_tref=undefined};
 		
 		%% stream id is allowed missing on restart stream request only if 1 stream is active
 		undefined when Restart =:= "true" andalso StreamCnt =:= 1 ->
@@ -492,80 +567,161 @@ stream_data(XmlEl, State=#state{streams=Streams, rcvr_pids=RcvrPids, inactivity_
 			ebosh_stream:send(Stream#stream.pid, exmpp_stream:opening(Stream#stream.to, ?NS_JABBER_CLIENT, {1,0})),
 			
 			%% in single stream case, nothing must be in buffer to be sent out
-			%% so simply hold onto this request
-			State;
+			%% so simply hold onto this request, also set max wait timer
+			NWaitTRef = set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG),
+			State#state{wait_tref=NWaitTRef,inactivity_tref=undefined};
 		
-		%% a pure ping request
-		undefined when Childrens =:= [] ->
-			%% release any previous request with pending buffer
-			%% if no previous request is on hold and no pending buffer to send
-			%% hold onto this request
-			lager:debug("pure ping request"),
-			ok;
+		%% stream add request
+		undefined when To =/= undefined andalso Lang =/= undefined ->
+			lager:debug("got stream add request"),
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
+		undefined when To =/= undefined andalso Lang =:= undefined ->
+			lager:debug("got invalid stream add request, mandatory lang param missing, to ~p", [To]),
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
 		
-		%% if only 1 stream is active, pkt belongs to the only stream
+		%% a pure ping requests
+		undefined when Childrens =:= [] andalso RcvrCnt =:= 1 andalso Buffer =:= [] ->
+			lager:debug("pure ping request, 1 rcvr and with no pending buffer"),
+			NWaitTRef = set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG),
+			State#state{inactivity_tref=undefined,
+						wait_tref=NWaitTRef};
+		undefined when Childrens =:= [] andalso RcvrCnt =:= 1 andalso Buffer =/= [] ->
+			lager:debug("pure ping request, 1 rcvr and with pending buffer, flushing"),
+			{RestBuffer, RestRcvrPids} = flush_to_rcvr(Buffer, RcvrPids),
+			NInactivityTRef = set_timer(MaxInactivity * 1000, ?MAX_INACTIVITY_TIMEOUT_MSG),
+			State#state{inactivity_tref=NInactivityTRef,
+						wait_tref=undefined,
+						buffer=RestBuffer,
+						rcvr_pids=RestRcvrPids};
+		undefined when Childrens =:= [] andalso RcvrCnt =/= 1 andalso Buffer =:= [] ->
+			lager:debug("pure ping request, more than 1 rcvr and no pending buffer"),
+			RestRcvrPids = free_prev_rcvr(RcvrPids),
+			NWaitTRef = set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG),
+			State#state{inactivity_tref=undefined,
+						wait_tref=NWaitTRef,
+						rcvr_pids=RestRcvrPids};
+		undefined when Childrens =:= [] andalso RcvrCnt =/= 1 andalso Buffer =/= [] ->
+			lager:debug("pure ping request, more than 1 rcvr and with pending buffer, flushing"),
+			{RestBuffer, RestRcvrPids} = flush_to_rcvr(Buffer, RcvrPids),
+			NWaitTRef = set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG),
+			State#state{inactivity_tref=undefined,
+						wait_tref=NWaitTRef,
+						buffer=RestBuffer,
+						rcvr_pids=RestRcvrPids};
+		
 		undefined when Childrens =/= [] andalso StreamCnt =:= 1 ->
-			%% relay pkt to underlying stream
+			lager:debug("only 1 stream is active, pkt belongs to the only active stream, relay pkt to underlying stream"),
 			[{_, Stream}] = Streams,
-			lager:debug("relaying to the only active stream ~p", [Stream#stream.pid]),
-			[Children|[]] = Childrens,
-			ok = ebosh_stream:send(Stream#stream.pid, Children),
+			ok = relay_to_stream(Stream#stream.pid, Childrens),
 			
-			%% release any previous request with pending buffer
-			%% if no previous request is on hold and no pending buffer to send
-			%% hold onto this request
 			if 
 				Buffer =:= [] andalso RcvrCnt =:= 1 ->
-					lager:debug("buffer is empty and 1 rcvr in queue, hold to it"),
-					State;
+					lager:debug("buffer is empty and 1 rcvr in queue, hold onto it"),
+					NWaitTRef = set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG),
+					State#state{inactivity_tref=undefined,
+								wait_tref=NWaitTRef};
 				Buffer =:= [] andalso RcvrCnt =/= 1 ->
 					lager:debug("buffer is empty and more than 1 rcvr in queue, releasing old rcvr"),
-					[OldRcvrPid|NewRcvrPids] = RcvrPids,
-					send_empty_body(OldRcvrPid),
-					State#state{rcvr_pids=NewRcvrPids};
+					RestRcvrPids = free_prev_rcvr(RcvrPids),
+					NWaitTRef = set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG),
+					State#state{inactivity_tref=undefined,
+								wait_tref=NWaitTRef,
+								rcvr_pids=RestRcvrPids};
 				Buffer =/= [] andalso RcvrCnt =:= 1 ->
 					lager:debug("pending buffer found and current rcvr is the only rcvr, relay data to it"),
-					ok;
+					{RestBuffer, RestRcvrPids} = flush_to_rcvr(Buffer, RcvrPids),
+					NInactivityTRef = set_timer(MaxInactivity * 1000, ?MAX_INACTIVITY_TIMEOUT_MSG),
+					State#state{inactivity_tref=NInactivityTRef,
+								wait_tref=undefined,
+								buffer=RestBuffer,
+								rcvr_pids=RestRcvrPids};
 				Buffer =/= [] andalso RcvrCnt =/= 1 ->
 					lager:debug("pending buffer found and more than 1 rcvr in waiting, release buffer to previous rcvr"),
-					ok
+					{RestBuffer, RestRcvrPids} = flush_to_rcvr(Buffer, RcvrPids),
+					NWaitTRef = set_timer(MaxWait * 1000, ?MAX_WAIT_TIMEOUT_MSG),
+					State#state{inactivity_tref=undefined,
+								wait_tref=NWaitTRef,
+								buffer=RestBuffer,
+								rcvr_pids=RestRcvrPids}
 			end;
 		
 		%% if more than 1 stream is active, this is a broadcast pkt request in multi stream case
-		undefined when Childrens =/= [] ->
-			%% broadcast pkt to all underlying streams
-			%% release any previous request with pending buffer
-			%% if no previous request is on hold and no pending buffer to send
-			%% hold onto this request
+		undefined when Childrens =/= [] andalso StreamCnt =/= 1 andalso Buffer =:= [] andalso RcvrCnt =:= 1 ->
 			lager:debug("broadcast pkt rcvd"),
-			ok;
+			%% hold onto request, set max wait timer
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
+		undefined when Childrens =/= [] andalso StreamCnt =/= 1 andalso Buffer =:= [] andalso RcvrCnt =/= 1 ->
+			lager:debug("broadcast pkt rcvd"),
+			%% free prev rcvr
+			%% hold onto request, set max wait timer
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
+		undefined when Childrens =/= [] andalso StreamCnt =/= 1 andalso Buffer =/= [] andalso RcvrCnt =:= 1 ->
+			lager:debug("broadcast pkt rcvd"),
+			%% send pending buffer to current rcvr
+			%% set max inactivity timer
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
+		undefined when Childrens =/= [] andalso StreamCnt =/= 1 andalso Buffer =/= [] andalso RcvrCnt =/= 1 ->
+			lager:debug("broadcast pkt rcvd"),
+			%% send pending buffer to prev rcvr
+			%% set max wait timer
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
 		
 		StreamId when Type =:= "terminate" ->
 			lager:debug("restart request in multi stream case found"),
-			ok;
+			%% free prev rcvr if more than 1 rcvr found
+			%% terminate underlying stream
+			%% send terminated body to current rcvr
+			%% set max inactivity timer
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
 		
 		StreamId when Restart =:= "true" ->
 			lager:debug("restart request in multi stream case found"),
-			ok;
+			%% restart underlying stream
+			State#state{inactivity_tref=undefined,wait_tref=undefined};
 		
 		%% stream id found i.e. client do support multi stream
 		StreamId ->
 			%% flush any pending buffer
 			%% relay data to underlying associated stream
 			lager:debug("client support multistream, pkt for stream ~p rcvd", [StreamId]),
-			ok
+			State#state{inactivity_tref=undefined,wait_tref=undefined}
 	end.
 
+%% takes 1st rcvr out of queue and flush first buffer out of passed buffer queue
+flush_to_rcvr(Buffer, RcvrPids) ->
+	[{BStreamId, BStreamBuf}|RestBuffer] = Buffer,
+	TXmlEl = lists:foldl(fun(#received_packet{raw_packet=RPkt}, Acc) -> Acc ++ [RPkt] end, [], BStreamBuf),
+	[OldRcvrPid|RestRcvrPids] = RcvrPids,
+	Attrs = gen_attrs([{'xmlns:stream',?NS_XMPP_b},{stream,BStreamId}]),
+	send_body(OldRcvrPid, Attrs, TXmlEl),
+	{RestBuffer, RestRcvrPids}.
+
+set_timer(After, Msg) ->
+	{ok, TRef} = timer:send_after(After, Msg),
+	TRef.
+	
+cancel_timer(undefined) -> ok;
+cancel_timer(TRef) -> timer:cancel(TRef).
+	
+relay_to_stream(Pid, Childrens) ->
+	[Children|[]] = Childrens,
+	ebosh_stream:send(Pid, Children).
+
+free_prev_rcvr(RcvrPids) ->
+	[OldRcvrPid|RestRcvrPids] = RcvrPids,
+	send_empty_body(OldRcvrPid),
+	RestRcvrPids.
+
 send_empty_body(RcvrPid) ->
-	send_to_rcvr(RcvrPid, []).
+	send_body(RcvrPid, []).
 
-send_to_rcvr(RcvrPid, Attrs) ->
-	send_to_rcvr(RcvrPid, Attrs, []).
+send_body(RcvrPid, Attrs) ->
+	send_body(RcvrPid, Attrs, []).
 
-send_to_rcvr(RcvrPid, Attrs, Children) ->
-	send_to_rcvr(RcvrPid, Attrs, Children, []).
+send_body(RcvrPid, Attrs, Children) ->
+	send_body(RcvrPid, Attrs, Children, []).
 
-send_to_rcvr(RcvrPid, Attrs, Children, DecNS) ->
+send_body(RcvrPid, Attrs, Children, DecNS) ->
 	BodyEl = #xmlel{name='body', ns=?NS_HTTP_BIND_s, attrs=Attrs, children=Children, declared_ns=DecNS},
 	Body = exmpp_xml:document_to_binary(BodyEl),
 	RcvrPid ! {?EBOSH_RESPONSE_MSG, ?HEADER, Body},

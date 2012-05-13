@@ -5,16 +5,63 @@ ERL=`which erl`
 ERL_OPTS="-pa deps/*/ebin -pa ebin"
 EXEC="$ERL $ERL_OPTS"
 
+## erlang cookie and node name
+COOKIE_OPTS=`grep '^-setcookie' vm.args`
+NODE=`egrep '^-s?name' vm.args | cut -f2 -d' '`
+
 REBAR=./rebar
 REBAR_URL=http://cloud.github.com/downloads/basho/rebar/rebar
 
 case $COMMAND in
 	
 	start)
+		echo "starting ebosh ..."
 		$EXEC \
 		-args_file vm.args \
 		-config ebosh.config \
-		-s ebosh
+		-s ebosh \
+		-noshell \
+		-detached
+		;;
+	
+	restart)
+		$0 stop
+		$0 start
+		;;
+	
+	stop)
+		echo "stopping ebosh ..."
+		$EXEC \
+		-name "stop-$NODE" \
+		$COOKIE_OPTS \
+		-eval "rpc:call('$NODE', init, stop, [])" \
+		-noshell \
+		-hidden \
+		-s init stop
+		;;
+	
+	ctl)
+		echo "entering ebosh console ..."
+		$EXEC \
+		-name "attach-$NODE" \
+		$COOKIE_OPTS \
+		-remsh $NODE \
+		-hidden
+		;;
+		
+	ping)
+		echo "pinging $NODE ..."
+		$EXEC \
+		-name "ping-$NODE" \
+		$COOKIE_OPTS \
+		-eval \
+		"case net_adm:ping('$NODE') of \
+			pong -> io:fwrite(\"Ponged ~p ...~n\",['$NODE']); \
+			pang -> io:fwrite(\"Panged ~p ...~n\",['$NODE']) \
+		end" \
+		-noshell \
+		-hidden \
+		-s init stop
 		;;
 	
 	compile)
@@ -25,8 +72,8 @@ case $COMMAND in
 		$REBAR clean
 		;;
 		
-	eunit)
-		$REBAR eunit skip_deps=true
+	test)
+		$REBAR skip_deps=true eunit
 		;;
 	
 	deps)
@@ -43,6 +90,7 @@ case $COMMAND in
 		;;
 	
 	*)
+		echo "Usage: $0 {start|restart|stop|ctl|ping|compile|clean|test|deps|update|rebar}"
 		exit 1
 
 esac
