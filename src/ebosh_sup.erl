@@ -71,7 +71,8 @@ init([]) ->
 	MaxSecBetweenRestarts = 10,
 	SupFlags = {RestartStrategy, MaxRestarts, MaxSecBetweenRestarts},
 	
-	Web = {ebosh_web, {ebosh_web, start, []}, permanent, 5000, worker, dynamic},
+	HttpMod = list_to_atom("ebosh_" ++ ebosh:get_env(http_lib, "mochiweb")),
+	Web = {HttpMod, {HttpMod, start, []}, permanent, 5000, worker, dynamic},
 	Procs = [Web],
 	
     {ok,{SupFlags, Procs}}.

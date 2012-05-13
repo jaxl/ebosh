@@ -39,12 +39,14 @@ start() ->
 	application:start(crypto),
 	application:start(ssl),
 	application:start(inets),
+	application:start(cowboy),
 	application:start(exmpp),
 	application:start(ebosh).
 
 stop() ->
 	application:stop(ebosh),
 	application:stop(exmpp),
+	application:stop(cowboy),
 	application:stop(inets),
 	application:stop(ssl),
 	application:stop(crypto),

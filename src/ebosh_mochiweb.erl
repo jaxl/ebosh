@@ -18,8 +18,8 @@
 
 %% Author: abhinavsingh
 %% Created: May 12, 2012
-%% Description: TODO: Add description to ebosh_web_srvr
--module(ebosh_web).
+%% Description: TODO: Add description to ebosh_mochiweb
+-module(ebosh_mochiweb).
 
 %%
 %% Include files
@@ -49,9 +49,6 @@ stop() ->
 	HttpsPort = ebosh:get_env(https_port, 9697),
 	mochiweb_http:stop(get_srvr_name(HttpPort)),
 	mochiweb_http:stop(get_srvr_name(HttpsPort)).
-
-get_srvr_name(Port) ->
-	list_to_atom(atom_to_list(?MODULE) ++ "_" ++ integer_to_list(Port)).
 
 loop(Req) ->
 	HttpBindPath = ebosh:get_env(http_bind_path, "/http-bind"),
@@ -84,6 +81,8 @@ loop(Req) ->
 %%
 %% Local Functions
 %%
+get_srvr_name(Port) ->
+	list_to_atom(atom_to_list(?MODULE) ++ "_" ++ integer_to_list(Port)).
 
 wait_for_bosh_response(Req, BoshPid) ->
 	Socket = Req:get(socket),
@@ -101,4 +100,3 @@ wait_for_bosh_response(Req, BoshPid) ->
 			lager:debug("rcvd unhandled ~p", [Any]),
 			wait_for_bosh_response(Req, BoshPid)
 	end.
-

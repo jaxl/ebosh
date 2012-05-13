@@ -92,7 +92,7 @@ case $COMMAND in
 	*)
 		echo "Usage: $0 {start|restart|stop|ctl|ping|compile|clean|test|deps|update|rebar}"
 		exit 1
-
+		
 esac
 
 exit 0
