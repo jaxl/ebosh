@@ -1,0 +1,30 @@
+## Name of the node
+-name ebosh@127.0.0.1
+
+## Cookie for distributed erlang
+-setcookie ebosh
+
+## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
+## (Disabled by default..use with caution!)
+##-heart
+
+## Enable kernel poll
++K true
+
+## Enable a few async threads
++A 5
+
+## Max process limit
++P 250000
+
+## Set kernel interface
+-kernel inet_dist_use_interface {127,0,0,1}
+
+## enable smp support
+-smp auto
+
+## Increase number of concurrent ports/sockets
+-env ERL_MAX_PORTS 4096
+
+## Tweak GC to run more often
+-env ERL_FULLSWEEP_AFTER 10

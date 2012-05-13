@@ -1,0 +1,9 @@
+{application, ebosh, [
+	{description, "ebosh is a bosh (bidirectional stream over http) connection manager/server"},
+	{vsn, "0.1"},
+	{modules, []},
+	{registered, []},
+	{mod, {ebosh_app, []}},
+	{env, []},
+	{applications, [kernel, stdlib]}
+]}.

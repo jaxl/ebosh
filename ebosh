@@ -1,0 +1,50 @@
+#!/bin/sh
+
+COMMAND=$1
+ERL=`which erl`
+ERL_OPTS="-pa deps/*/ebin -pa ebin"
+EXEC="$ERL $ERL_OPTS"
+
+REBAR=./rebar
+REBAR_URL=http://cloud.github.com/downloads/basho/rebar/rebar
+
+case $COMMAND in
+	
+	start)
+		$EXEC \
+		-args_file vm.args \
+		-config ebosh.config \
+		-s ebosh
+		;;
+	
+	compile)
+		$REBAR compile
+		;;
+		
+	clean)
+		$REBAR clean
+		;;
+		
+	eunit)
+		$REBAR eunit skip_deps=true
+		;;
+	
+	deps)
+		$REBAR get-deps
+		;;
+		
+	update)
+		$REBAR update-deps
+		;;
+		
+	rebar)
+		wget -q -O $REBAR $REBAR_URL
+		chmod u+x $REBAR
+		;;
+	
+	*)
+		exit 1
+
+esac
+
+exit 0

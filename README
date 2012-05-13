@@ -1,0 +1,6 @@
+ebosh:
+------
+ebosh is a bosh (bidirectional stream over http) connection manager written on top of erlang otp principles.
+Specification about bosh can be found here: http://xmpp.org/extensions/xep-0124.html
+
+(A work in progress, yet not for production use)
