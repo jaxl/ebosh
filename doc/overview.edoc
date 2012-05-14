@@ -24,70 +24,70 @@ Quick Start Guide
 
 ### get ebosh
 	
-	get the source and compile
+get the source and compile
 	
-	<pre>
-	PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
-	PROMPT> cd ebosh
-	PRMOPT> chmod +x ebosh
-	PROMPT> ./ebosh rebar
-	PROMPT> ./ebosh deps
-	PROMPT> ./ebosh compile
-	PROMPT>
-	</pre>
+<pre>
+PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
+PROMPT> cd ebosh
+PRMOPT> chmod +x ebosh
+PROMPT> ./ebosh rebar
+PROMPT> ./ebosh deps
+PROMPT> ./ebosh compile
+PROMPT>
+</pre>
 
 ### start
 	
-	start ebosh
-	
-	<pre>
-	PROMPT> ./ebosh start
-	starting ebosh ...
-	PROMPT> 
-	</pre>
+start ebosh
+
+<pre>
+PROMPT> ./ebosh start
+starting ebosh ...
+PROMPT> 
+</pre>
 
 ### test
 
 Ping ebosh to test if it's running
 
-	<pre>
-	PROMPT> ./ebosh ping
-	pinging ebosh@127.0.0.1 ...
-	running
-	PROMPT> 
-	</pre>
+<pre>
+PROMPT> ./ebosh ping
+pinging ebosh@127.0.0.1 ...
+running
+PROMPT> 
+</pre>
 
 Point your bosh clients to http://127.0.0.1:9696/http-bind
 
 ### debug
 
-	debug ebosh by entering corresponding erlang console
+debug ebosh by entering corresponding erlang console
 	
-	<pre>
-	PROMPT> ./ebosh ctl
-	Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
+<pre>
+PROMPT> ./ebosh ctl
+Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
+
+Eshell V5.8.5  (abort with ^G)
+(ebosh@127.0.0.1)1>
+BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution
+^C
+PROMPT> toolbar:start().
+PROMPT> 
+</pre>
 	
-	Eshell V5.8.5  (abort with ^G)
-	(ebosh@127.0.0.1)1>
-	BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
-	       (v)ersion (k)ill (D)b-tables (d)istribution
-	^C
-	PROMPT> toolbar:start().
-	PROMPT> 
-	</pre>
-	
-	press `CNTL+C' quit debug mode
+press `CNTL+C' quit debug mode
 
 ### stop
 	
-	stop ebosh
-	
-	<pre>
-	PROMPT> ./ebosh stop
-	PROMPT> ./ebosh ping
-	pinging ebosh@127.0.0.1 ...
-	not running
-	</pre>
+stop ebosh
+
+<pre>
+PROMPT> ./ebosh stop
+PROMPT> ./ebosh ping
+pinging ebosh@127.0.0.1 ...
+not running
+</pre>
 
 Configuration Parameters
 -------------------------
