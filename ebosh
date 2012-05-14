@@ -74,8 +74,9 @@ case $COMMAND in
 	
 	compile)
 		$REBAR compile
+		$0 compile-mod
 		;;
-		
+	
 	clean)
 		$REBAR clean
 		;;
@@ -115,8 +116,19 @@ case $COMMAND in
 		chmod u+x $REBAR
 		;;
 	
+	## compile mod_ebosh for ejabberd
+	compile-mod)
+		echo "compiling mod_ebosh"
+		erlc -I/lib/ejabberd/include -I/lib/ejabberd/include/web -Iinclude -pa /lib/ejabberd/ebin -o ebin/ ejabberd/mod_ebosh.erl
+		;;
+	
+	## install mod_ebosh
+	install-mod)
+		cp ebin/mod_ebosh.beam /lib/ejabberd/ebin/
+		;;
+	
 	*)
-		echo "Usage: $0 {start|console|restart|stop|debug|ping|compile|clean|test|doc|get-deps|update-deps|rebar}"
+		echo "Usage: $0 {start|console|restart|stop|debug|ping|compile|clean|test|doc|get-deps|update-deps|rebar|compile-mod|install-mod}"
 		exit 1
 		
 esac
