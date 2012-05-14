@@ -102,12 +102,12 @@
 -define(MAX_OUT_RATE, 20000).
 
 %% CORS headers
--define(CT_XML, {'Content-Type', "text/xml; charset=utf-8"}).
--define(CT_PLAIN, {'Content-Type', "text/plain"}).
--define(AC_ALLOW_ORIGIN, {'Access-Control-Allow-Origin', "*"}).
--define(AC_ALLOW_METHODS, {'Access-Control-Allow-Methods', "GET, POST, OPTIONS"}).
--define(AC_ALLOW_HEADERS, {'Access-Control-Allow-Headers', "Content-Type"}).
--define(AC_MAX_AGE, {'Access-Control-Max-Age', "86400"}).
+-define(CT_XML, {'Content-Type', <<"text/xml; charset=utf-8">>}).
+-define(CT_PLAIN, {'Content-Type', <<"text/plain">>}).
+-define(AC_ALLOW_ORIGIN, {<<"Access-Control-Allow-Origin">>, <<"*">>}).
+-define(AC_ALLOW_METHODS, {<<"Access-Control-Allow-Methods">>, <<"GET, POST, OPTIONS">>}).
+-define(AC_ALLOW_HEADERS, {<<"Access-Control-Allow-Headers">>, <<"Content-Type">>}).
+-define(AC_MAX_AGE, {<<"Access-Control-Max-Age">>, <<"86400">>}).
 -define(HEADER, [?CT_XML, ?AC_ALLOW_ORIGIN, ?AC_ALLOW_HEADERS]).
 
 %% timeout messages

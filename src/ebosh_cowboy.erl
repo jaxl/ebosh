@@ -26,6 +26,7 @@
 %% Include files
 %%
 -include_lib("ebosh_session.hrl").
+-include_lib("deps/cowboy/include/http.hrl").
 
 %%
 %% Exported Functions
@@ -63,8 +64,32 @@ init({_Any, http}, Req, []) ->
 	{ok, Req, undefined}.
 
 handle(Req, State) ->
-	{ok, Req2} = cowboy_http_req:reply(200, [], <<"Hello world!">>, Req),
-	{ok, Req2, State}.
+	case Req#http_req.method of
+		'POST' ->
+			HttpBindPath = list_to_binary(ebosh:get_env(http_bind_path, "/http-bind")),
+			case Req#http_req.raw_path of
+				HttpBindPath ->
+					{ok, Body, Req1} = cowboy_http_req:body(Req),
+					ResFun = fun(BoshPid) -> wait_for_bosh_response(Req1, State, BoshPid) end,
+					ErrFun = fun({C, H, B}) -> {ok, Req2} = cowboy_http_req:reply(C, H, B, Req1), {ok, Req2, State} end,
+					ebosh_session:stream(Body, ResFun, ErrFun);
+				_Any ->
+					lager:debug("got ~p", [Req]),
+					cowboy_http_req:reply(400, Req)
+			end;
+		'GET' ->
+			lager:debug("got ~p", [Req]),
+			cowboy_http_req:reply(501, Req);
+		'HEAD' ->
+			lager:debug("got ~p", [Req]),
+			cowboy_http_req:reply(501, Req);
+		'OPTIONS' ->
+			lager:debug("got ~p", [Req]),
+			cowboy_http_req:reply(501, Req);
+		_ ->
+			lager:debug("got ~p", [Req]),
+			cowboy_http_req:reply(501, Req)
+	end.
 
 terminate(_Req, _State) ->
 	lager:debug("req terminated"),
@@ -75,3 +100,23 @@ terminate(_Req, _State) ->
 %%
 get_srvr_name(Port) ->
 	list_to_atom(atom_to_list(?MODULE) ++ "_" ++ integer_to_list(Port)).
+
+wait_for_bosh_response(Req, State, BoshPid) ->
+	lager:debug("got to wait_for_bosh_response"),
+	Trans = Req#http_req.transport,
+	Socket = Req#http_req.socket,
+	Trans:setopts(Socket, [{active, once}]),
+	
+	receive
+		{?EBOSH_RESPONSE_MSG, Header, Body} ->
+			lager:debug("got response body ~p and header ~p", [Body, Header]),
+			{ok, Req1} = cowboy_http_req:reply(200, Header, Body, Req),
+			{ok, Req1, State};
+		{tcp_closed, Socket} ->
+			lager:debug("client closed connection"),
+			Trans:close(Socket),
+			exit(normal);
+		Any ->
+			lager:debug("rcvd unhandled ~p", [Any]),
+			wait_for_bosh_response(Req, State, BoshPid)
+	end.

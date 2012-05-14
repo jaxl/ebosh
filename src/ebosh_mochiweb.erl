@@ -51,9 +51,9 @@ stop() ->
 	mochiweb_http:stop(get_srvr_name(HttpsPort)).
 
 loop(Req) ->
-	HttpBindPath = ebosh:get_env(http_bind_path, "/http-bind"),
 	case Req:get(method) of
 		'POST' ->
+			HttpBindPath = ebosh:get_env(http_bind_path, "/http-bind"),
 			case Req:get(path) of
 				HttpBindPath ->
 					Body = Req:recv_body(),
