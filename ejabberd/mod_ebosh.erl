@@ -98,7 +98,7 @@ stream(Req) ->
 		{badrpc, Reason} ->
 			?DEBUG("rpc failed reason ~p", [Reason]),
 			{500, [], []};
-		Ret ->
-			?DEBUG("rpc call succeeded with ret ~p", [Ret]),
-			Ret
+		{C, H, B} ->
+			?DEBUG("rpc call succeeded with ret ~p", [B]),
+			{C, H, B}
 	end.
