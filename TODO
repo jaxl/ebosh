@@ -1,0 +1,8 @@
+1) write test suite
+2) complete TODO markers inside src
+3) can we have a generic ebosh_web or ebosh_http 
+   in turn dealing with configured http_lib adapter?
+4) add support for jsonp, websocket, chunked encoding inside generic web module
+5) if client exceed rate limit, take appropriate action
+   (currently nothing is done)
+6) complete error handling cases and send appropriate response code/condition

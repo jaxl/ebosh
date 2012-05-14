@@ -165,16 +165,21 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+
+%% @doc start new ebosh_session with passed Sid as a supervised process
+-spec start_super(sid()) -> {ok, pid()}.
 start_super(Sid) ->
 	ProcName = get_proc_name(Sid),
 	Spec = {ProcName, {?MODULE, start_link, [Sid]}, temporary, 2000, worker, [?MODULE]},
 	supervisor:start_child(ebosh_sup, Spec).
 
+%% @doc start new ebosh_session with passed Sid as a linked process
 -spec start_link(sid()) -> {ok, pid()}.
 start_link(Sid) ->
 	ProcName = get_proc_name(Sid),
 	gen_fsm:start_link({global, ProcName}, ?MODULE, [Sid], []).
 
+%% @doc stream raw Body string to ebosh_session for Sid
 -spec stream(sid(), string()) -> ok | error.
 stream(Sid, Body) ->
 	case parse_body(Body) of
@@ -182,11 +187,19 @@ stream(Sid, Body) ->
 		XmlEl -> stream(Sid, XmlEl, iolist_size(Body))
 	end.
 
+%% @doc stream an #xmlElement{} pkt to underlying ebosh_session for Sid
+%%		BodySize is required for rate limiting and is required
 -spec stream(sid(), #xmlElement{}, integer()) -> ok.
 stream(Sid, XmlEl, BodySize) when is_record(XmlEl, xmlElement) andalso is_integer(BodySize) ->
 	ProcName = get_proc_name(Sid),
 	gen_fsm:send_all_state_event({global, ProcName}, {stream, XmlEl, BodySize, self()});
 
+%% @doc stream raw Body string
+%%		This must be called directly from web process adapter modules
+%%		Body is rcvd raw bosh <body/> string
+%%		ResFun/1 accepts underlying ebosh_session BoshPid as argument
+%%		ErrFun/1 if Body string is an invalid bosh body pkt, 
+%%		ErrFun({Code, Header, Body}) will be called
 stream(Body, ResFun, ErrFun) when is_function(ResFun) andalso is_function(ErrFun) ->
 	BodySize = iolist_size(Body),
 	case ebosh_session:parse_body(Body) of
@@ -221,6 +234,7 @@ stream(Body, ResFun, ErrFun) when is_function(ResFun) andalso is_function(ErrFun
 			end
 	end.
 
+%% @doc parse raw Body string as #xmlElement{}
 -spec parse_body(binary() | string()) -> error | #xmlElement{}.
 parse_body(Body) when is_binary(Body) ->
 	parse_body(binary_to_list(Body));
@@ -235,6 +249,7 @@ parse_body(Body) ->
 			error
 	end.
 
+%% @doc check if an #xmlElement{} is a valid session start bosh body
 -spec is_valid_session_start_pkt(#xmlElement{}) -> boolean().
 is_valid_session_start_pkt(XmlEl) ->
 	Sid = get_attr(XmlEl, "sid"),
@@ -255,6 +270,7 @@ is_valid_session_start_pkt(XmlEl) ->
 		   false
 	end.
 
+%% @doc generate new session id
 -spec gen_sid() -> sid().
 gen_sid() ->
 	{Mega, Secs, Micro} = now(),
@@ -262,10 +278,12 @@ gen_sid() ->
 	<<Digest:160/big-unsigned-integer>> = crypto:sha(TimeString),
 	lists:flatten(io_lib:format("~40.16.0b", [Digest])).
 
+%% @doc get ebosh_session registered name for Sid
 -spec get_proc_name(sid()) -> atom.
 get_proc_name(Sid) ->
 	list_to_atom(atom_to_list(?MODULE) ++ "_" ++ Sid).
 
+%% @doc check if underlying ebosh_session for Sid is still running
 -spec is_alive(sid()) -> false | pid().
 is_alive(Sid) ->
 	case global:whereis_name(get_proc_name(Sid)) of
@@ -273,6 +291,7 @@ is_alive(Sid) ->
 		Pid -> Pid
 	end.
 
+%% @doc extract bosh <body/> #xmlElement{} attribute value by key
 -spec get_attr(#xmlElement{}, string()) -> undefined | string().
 get_attr(XmlEl, Attr) ->
 	case xmerl_xpath:string("//body/@"++Attr, XmlEl) of
@@ -280,6 +299,7 @@ get_attr(XmlEl, Attr) ->
 		_ -> undefined
 	end.
 
+%% @doc generate [#xmlattr{}, ...] for passed key-value pair of Attrs
 gen_attrs(Attrs) ->
 	[begin 
 		 case KV of
@@ -294,6 +314,7 @@ gen_attrs(Attrs) ->
 		 end 
 	 end || KV <- Attrs].
 
+%% @doc to binary
 to_binary(B) when is_binary(B) -> B;
 to_binary(L) when is_list(L) -> list_to_binary(L);
 to_binary(A) when is_atom(A) -> to_binary(atom_to_list(A));
@@ -312,6 +333,7 @@ init([Sid]) ->
 	OutRate = shaper:new(?MAX_OUT_RATE),
     {ok, streaming, #state{sid=Sid,in_rate=InRate,out_rate=OutRate}}.
 
+%% @doc this method will ONLY receive the very first session start bosh body packet
 -spec handle_event({stream, #xmlElement{}}, state(), #state{}) -> {next_state, state(), #state{}} | 
 																	  {next_state, state(), #state{}, integer()} | 
 																	  {stop, term(), #state{}}.
@@ -325,6 +347,16 @@ handle_event({stream, XmlEl, BodySize, RcvrPid},
 	State1 = start_first_stream(XmlEl, State),
 	{next_state, StateName, State1};
 
+%% @doc handle any subsequent bosh body packet and relay any incoming xmpp pkt to
+%%		associated underlying xmpp client stream. 
+%%
+%%		This method essentially do following packet validation:
+%%		1) rid chks
+%%		2) in rate limit updatation
+%%		3) N-key sequence validation
+%%
+%%		Finally it called stream_data(XmlEl, State) which 
+%%		actually do relaying of incoming xmpp pkts
 handle_event({stream, XmlEl, BodySize, RcvrPid}, 
 			 StateName=streaming, 
 			 StateData=#state{rid=Rid,
@@ -361,14 +393,18 @@ handle_event({stream, XmlEl, BodySize, RcvrPid},
 			{stop, item_not_found, StateData}
 	end;
 
+%% @doc unhandled events
 handle_event(Event, StateName, StateData) ->
 	lager:debug("unhandled event ~p", [Event]),
     {next_state, StateName, StateData}.
 
+%% @doc unhandled sync events
 handle_sync_event(Event, _From, StateName, StateData) ->
 	lager:debug("unhandled sync event ~p", [Event]),
     {reply, ok, StateName, StateData}.
 
+%% @doc handle xmpp Pkt from underlying StreamId ebosh_stream process
+%%		this case handles when we have no rcvrs in waiting
 handle_info({StreamId, #received_packet{} = Pkt}, 
 			StateName, 
 			StateData=#state{rcvr_pids=[], buffer=Buffer,
@@ -385,6 +421,8 @@ handle_info({StreamId, #received_packet{} = Pkt},
 	end,
 	{next_state, StateName, StateData#state{buffer=NewBuffer}};
 
+%% @doc handle xmpp Pkt from underlying StreamId ebosh_stream process
+%%		this case handles when we have rcvrs in waiting
 handle_info({StreamId, #received_packet{raw_packet=XmlEl} = _Pkt}, 
 			StateName, 
 			StateData=#state{rcvr_pids=[RcvrPid | RcvrPids], buffer=Buffer,
@@ -428,6 +466,7 @@ handle_info({StreamId, #received_packet{raw_packet=XmlEl} = _Pkt},
 											inactivity_tref=NInactivityTRef,
 											wait_tref=NWaitTRef}};
 
+%% @doc handle max wait timeout on request
 handle_info(?MAX_WAIT_TIMEOUT_MSG, 
 			StateName, 
 			StateData=#state{rcvr_pids=[RcvrPid | RcvrPids],
@@ -445,20 +484,24 @@ handle_info(?MAX_WAIT_TIMEOUT_MSG,
 											out_rate=OutRate1, 
 											out_bytes=OutBytes1}};
 
-handle_info(?MAX_WAIT_TIMEOUT_MSG, 
+%% @doc handle max inactivity timeout on client
+handle_info(?MAX_WAIT_INACTIVITY_MSG, 
 			_StateName, 
 			StateData) ->
 	lager:debug("max inactivity timeout, shutting down"),
 	{stop, ?MAX_INACTIVITY_TIMEOUT_MSG, StateData};
 	
+%% @doc unhandled info
 handle_info(Info, StateName, StateData) ->
 	lager:debug("unhandled info ~p", [Info]),
     {next_state, StateName, StateData}.
 
+%% @doc terminate
 terminate(Reason, _StateName, _StateData) ->
 	lager:debug("unhandled terminate with reason ~p", [Reason]),
     ok.
 
+%% @doc hot code update
 code_change(_OldVsn, StateName, StateData, _Extra) ->
     {ok, StateName, StateData}.
 
@@ -466,6 +509,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
+%% @doc called after receiving a valid bosh session start request
+%%		Spawns a new underlying ebosh_stream process
 start_first_stream(XmlEl, State=#state{sid=Sid,
 									   max_inactivity=MaxInactivity,
 									   max_pause=MaxPause,
@@ -529,6 +574,8 @@ start_first_stream(XmlEl, State=#state{sid=Sid,
 			State
 	end.
 
+%% @doc called after receiving a valid bosh body pkt
+%%		Handles various possible cases and do the needful
 stream_data(XmlEl, 
 			State=#state{streams=Streams, 
 						 rcvr_pids=RcvrPids, 
@@ -718,7 +765,7 @@ stream_data(XmlEl,
 			State#state{inactivity_tref=undefined,wait_tref=undefined}
 	end.
 
-%% takes 1st rcvr out of queue and flush first buffer out of passed buffer queue
+%% @doc takes 1st rcvr out of queue and flush first buffer out of passed buffer queue
 flush_to_rcvr(Buffer, RcvrPids) ->
 	[{BStreamId, BStreamBuf}|RestBuffer] = Buffer,
 	TXmlEl = lists:foldl(fun(#received_packet{raw_packet=RPkt}, Acc) -> Acc ++ [RPkt] end, [], BStreamBuf),
@@ -727,31 +774,39 @@ flush_to_rcvr(Buffer, RcvrPids) ->
 	send_body(OldRcvrPid, Attrs, TXmlEl),
 	{RestBuffer, RestRcvrPids}.
 
+%% @doc 
 set_timer(After, Msg) ->
 	{ok, TRef} = timer:send_after(After, Msg),
 	TRef.
 	
+%% @doc 
 cancel_timer(undefined) -> ok;
 cancel_timer(TRef) -> timer:cancel(TRef).
 	
+%% @doc 
 relay_to_stream(Pid, Childrens) ->
 	[Children|[]] = Childrens,
 	ebosh_stream:send(Pid, Children).
 
+%% @doc 
 free_prev_rcvr(RcvrPids) ->
 	[OldRcvrPid|RestRcvrPids] = RcvrPids,
 	send_empty_body(OldRcvrPid),
 	RestRcvrPids.
 
+%% @doc 
 send_empty_body(RcvrPid) ->
 	send_body(RcvrPid, []).
 
+%% @doc 
 send_body(RcvrPid, Attrs) ->
 	send_body(RcvrPid, Attrs, []).
 
+%% @doc 
 send_body(RcvrPid, Attrs, Children) ->
 	send_body(RcvrPid, Attrs, Children, []).
 
+%% @doc 
 send_body(RcvrPid, Attrs, Children, DecNS) ->
 	BodyEl = #xmlel{name='body', ns=?NS_HTTP_BIND_s, attrs=Attrs, children=Children, declared_ns=DecNS},
 	Body = exmpp_xml:document_to_binary(BodyEl),
