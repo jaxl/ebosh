@@ -40,7 +40,9 @@ Usage
 ### test ebosh
 
 Point your bosh clients to http://127.0.0.1:9696/http-bind
-Edit ebosh.config for your custom port and path configuration.
+
+Edit `ebosh.config` for your custom port and path configuration.
+
 Ping ebosh to test if it's running
 
 	PROMPT> ./ebosh ping
