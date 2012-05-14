@@ -1,12 +1,10 @@
 @author Abhinav Singh <me@abhinavsingh.com>
 @copyright 2011-2012 Abhinav Singh
 @version 0.0.1
-@title `ebosh' - a BOSH connection manager written on top of erlang otp principles
+@title ebosh
 
 @doc 
 
-ebosh
-======
 a work in progress, not yet ready for production use
 
 ebosh is a <a href="http://xmpp.org/extensions/xep-0124.html">BOSH</a> connection manager written on top of erlang otp principles.
@@ -24,8 +22,10 @@ Features:
 Quick Start Guide
 ------------------
 
-### get the source and compile
-
+### get ebosh
+	
+	get the source and compile
+	
 	<pre>
 	PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
 	PROMPT> cd ebosh
@@ -37,7 +37,9 @@ Quick Start Guide
 	</pre>
 
 ### start
-
+	
+	start ebosh
+	
 	<pre>
 	PROMPT> ./ebosh start
 	starting ebosh ...
@@ -59,6 +61,8 @@ Point your bosh clients to http://127.0.0.1:9696/http-bind
 
 ### debug
 
+	debug ebosh by entering corresponding erlang console
+	
 	<pre>
 	PROMPT> ./ebosh ctl
 	Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
@@ -71,9 +75,13 @@ Point your bosh clients to http://127.0.0.1:9696/http-bind
 	PROMPT> toolbar:start().
 	PROMPT> 
 	</pre>
+	
+	press `CNTL+C' quit debug mode
 
 ### stop
-
+	
+	stop ebosh
+	
 	<pre>
 	PROMPT> ./ebosh stop
 	PROMPT> ./ebosh ping
@@ -99,10 +107,9 @@ ebosh require following external libraries.
 * [mochiweb](https://github.com/abhinavsingh/mochiweb/) or [cowboy](https://github.com/abhinavsingh/cowboy/) for http web server
 * [lager](https://github/abhinavsingh/lager/) for logging facility
 
-You can run ebosh either with mochiweb, cowboy or even your own custom erlang server.
-
-ebosh requires a patched version of exmpp to work with. You can obtain the 
-patched version in two ways:
+You can run ebosh either with mochiweb, cowboy or even your own custom erlang server.<br/>
+ebosh requires a patched version of exmpp to work with.<br/>
+You can obtain the patched version in two ways:<br/>
 * `git clone git://github.com/abhinavsingh/exmpp.git'
 * patch `src/network/exmpp_session.erl' of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
 
