@@ -69,9 +69,18 @@ handle(Req, State) ->
 			case Req#http_req.raw_path of
 				HttpBindPath ->
 					{ok, Body, Req1} = cowboy_http_req:body(Req),
-					ResFun = fun(BoshPid) -> wait_for_bosh_response(Req1, State, BoshPid) end,
-					ErrFun = fun({C, H, B}) -> {ok, Req2} = cowboy_http_req:reply(C, H, B, Req1), {ok, Req2, State} end,
-					ebosh_session:stream(Body, ResFun, ErrFun);
+					ResFun = 
+						fun({RCode, RHeader, RBody}) -> 
+								 {ok, Req2} = cowboy_http_req:reply(RCode, RHeader, RBody, Req1),
+								 {ok, Req2, State} 
+						end,
+					SetOptFun = 
+						fun(Opts) -> 
+								Trans = Req#http_req.transport,
+								Socket = Req#http_req.socket,
+								Trans:setopts(Socket, Opts)
+						end,
+					ebosh_http:stream(Body, ResFun, SetOptFun);
 				_Any ->
 					lager:debug("got ~p", [Req]),
 					cowboy_http_req:reply(400, Req)
@@ -98,22 +107,3 @@ terminate(_Req, _State) ->
 %%
 get_srvr_name(Port) ->
 	list_to_atom(atom_to_list(?MODULE) ++ "_" ++ integer_to_list(Port)).
-
-wait_for_bosh_response(Req, State, BoshPid) ->
-	Trans = Req#http_req.transport,
-	Socket = Req#http_req.socket,
-	Trans:setopts(Socket, [{active, once}]),
-	
-	receive
-		{?EBOSH_RESPONSE_MSG, Header, Body} ->
-			lager:debug("got response body ~p", [Body]),
-			{ok, Req1} = cowboy_http_req:reply(200, Header, Body, Req),
-			{ok, Req1, State};
-		{tcp_closed, Socket} ->
-			lager:debug("client closed connection"),
-			Trans:close(Socket),
-			exit(normal);
-		Any ->
-			lager:debug("rcvd unhandled ~p", [Any]),
-			wait_for_bosh_response(Req, State, BoshPid)
-	end.

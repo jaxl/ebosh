@@ -56,10 +56,17 @@ loop(Req) ->
 			HttpBindPath = ebosh:get_env(http_bind_path, "/http-bind"),
 			case Req:get(path) of
 				HttpBindPath ->
+					Socket = Req:get(socket),
 					Body = Req:recv_body(),
-					ResFun = fun(BoshPid) -> wait_for_bosh_response(Req, BoshPid) end,
-					ErrFun = fun(Res) -> Req:respond(Res) end,
-					ebosh_session:stream(Body, ResFun, ErrFun);
+					ResFun = 
+						fun({RCode, RHeader, RBody}) ->
+								Req:respond({RCode, RHeader, RBody})
+						end,
+					SetOptFun = 
+						fun(Opts) -> 
+								mochiweb_socket:setopts(Socket, Opts)
+						end,
+					ebosh_http:stream(Body, ResFun, SetOptFun);
 				_Any ->
 					lager:debug("got ~p", [Req]),
 					Req:respond({501, [], []})
@@ -83,20 +90,3 @@ loop(Req) ->
 %%
 get_srvr_name(Port) ->
 	list_to_atom(atom_to_list(?MODULE) ++ "_" ++ integer_to_list(Port)).
-
-wait_for_bosh_response(Req, BoshPid) ->
-	Socket = Req:get(socket),
-	ok = mochiweb_socket:setopts(Socket, [{active, once}]),
-	
-	receive
-		{?EBOSH_RESPONSE_MSG, Header, Body} ->
-			lager:debug("got response body ~p", [Body]),
-			Req:respond({200, Header, Body});
-		{tcp_closed, Socket} ->
-			lager:debug("client closed connection"),
-			mochiweb_socket:close(Socket),
-			exit(normal);
-		Any ->
-			lager:debug("rcvd unhandled ~p", [Any]),
-			wait_for_bosh_response(Req, BoshPid)
-	end.

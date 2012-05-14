@@ -19,44 +19,6 @@
 %%% -------------------------------------------------------------------
 %%% Author  : abhinavsingh
 %%% Description :
-%%%
-%%%		Web processes can directly call ebosh_session:stream(Body, ResFun, ErrFun)
-%%%		where,
-%%%			Body is raw http post BOSH <body/> string
-%%%			ResFun/1 is a function which accepts pid of underlying bosh process
-%%%			It must accept incoming messages of format {?EBOSH_RESPONSE_MSG, BoshPid, Header, Body} 
-%%%			from the underlying bosh session process, which then must be relayed to client
-%%%			ErrFun/1 is a function which accepts a 3-tuple {ResCode, Header, Body}. This will be 
-%%%			called in case passed Body string is an invalid BOSH body packet
-%%%		
-%%%		If not above, follow these instructions to use ebosh_session:
-%%%		
-%%%		Web process will start a new bosh session by calling:
-%%%		ebosh_session:start_link(Sid)
-%%%
-%%%		Once started, web process can send bosh packets for processing by calling:
-%%%		ebosh_session:stream(Sid, Body), 
-%%%		where Body is raw bosh pkt received via http post or other medium
-%%%
-%%%		Also ebosh_session:stream(Sid, XmlEl) can be called where
-%%%		XmlEl = #xmlElement{} obtained by calling ebosh_session:parse_body(Body)
-%%%
-%%%		Before calling ebosh_session:start_link(Sid), Web process will have to 
-%%%		detect new bosh session start requests and generate a new session id by
-%%%		calling ebosh_session:gen_sid()
-%%%
-%%%		New bosh session start requests can be detected in following fashion:
-%%%		a) parse incoming bosh body inside web process by calling
-%%%		   ebosh_session:parse_body(Body)
-%%%		b) test if parsed XmlEl is a valid session start request by calling:
-%%%		   ebosh_session:is_valid_session_start_pkt(XmlEl)
-%%%		c) if pkt is a valid session start request, generate a new session id
-%%%		   by calling ebosh_session:gen_sid() and finally start a new bosh
-%%%		   session by calling ebosh_session:start_link(Sid)
-%%%		d) Immediately after starting bosh session, send session start pkt for
-%%%		   processing by bosh process by calling:
-%%%		   ebosh_session:stream(Sid, XmlEl)
-%%%
 %%% Created : May 11, 2012
 %%% -------------------------------------------------------------------
 -module(ebosh_session).
@@ -192,47 +154,7 @@ stream(Sid, Body) ->
 -spec stream(sid(), #xmlElement{}, integer()) -> ok.
 stream(Sid, XmlEl, BodySize) when is_record(XmlEl, xmlElement) andalso is_integer(BodySize) ->
 	ProcName = get_proc_name(Sid),
-	gen_fsm:send_all_state_event({global, ProcName}, {stream, XmlEl, BodySize, self()});
-
-%% @doc stream raw Body string
-%%		This must be called directly from web process adapter modules
-%%		Body is rcvd raw bosh <body/> string
-%%		ResFun/1 accepts underlying ebosh_session BoshPid as argument
-%%		ErrFun/1 if Body string is an invalid bosh body pkt, 
-%%		ErrFun({Code, Header, Body}) will be called
-stream(Body, ResFun, ErrFun) when is_function(ResFun) andalso is_function(ErrFun) ->
-	BodySize = iolist_size(Body),
-	case ebosh_session:parse_body(Body) of
-		error ->
-			lager:debug("invalid xml pkt ~p", [Body]),
-			ErrFun({400, [], []});
-		XmlEl ->
-			lager:debug("rcvd ~p", [Body]),
-			case ebosh_session:is_valid_session_start_pkt(XmlEl) of
-				true ->
-					%% valid session start pkt
-					Sid = ebosh_session:gen_sid(),
-					{ok, BoshPid} = ebosh_session:start_super(Sid),
-					ebosh_session:stream(Sid, XmlEl, BodySize),
-					ResFun(BoshPid);
-				false ->
-					case ebosh_session:get_attr(XmlEl, "sid") of
-						undefined ->
-							lager:debug("invalid session start pkt and sid not found in pkt ~p", [Body]),
-							ErrFun({400, [], []});
-						Sid ->
-							%% not a session start pkt and sid found
-							case ebosh_session:is_alive(Sid) of
-								false ->
-									lager:debug("sent sid ~p session not found", [Sid]),
-									ErrFun({400, [], []});
-								BoshPid ->
-									ebosh_session:stream(Sid, XmlEl, BodySize),
-									ResFun(BoshPid)
-							end
-					end
-			end
-	end.
+	gen_fsm:send_all_state_event({global, ProcName}, {stream, XmlEl, BodySize, self()}).
 
 %% @doc parse raw Body string as #xmlElement{}
 -spec parse_body(binary() | string()) -> error | #xmlElement{}.
@@ -810,7 +732,7 @@ send_body(RcvrPid, Attrs, Children) ->
 send_body(RcvrPid, Attrs, Children, DecNS) ->
 	BodyEl = #xmlel{name='body', ns=?NS_HTTP_BIND_s, attrs=Attrs, children=Children, declared_ns=DecNS},
 	Body = exmpp_xml:document_to_binary(BodyEl),
-	RcvrPid ! {?EBOSH_RESPONSE_MSG, ?HEADER, Body},
+	RcvrPid ! {?EBOSH_RESPONSE_MSG, self(), ?HEADER, Body},
 	iolist_size(Body).
 
 -ifdef(TEST).
