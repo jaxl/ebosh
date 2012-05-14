@@ -7,6 +7,7 @@ EXEC="$ERL $ERL_OPTS"
 
 ## erlang cookie and node name
 COOKIE_OPTS=`grep '^-setcookie' vm.args`
+NODE_OPTS=`egrep '^-s?name' vm.args | cut -f1 -d' '`
 NODE=`egrep '^-s?name' vm.args | cut -f2 -d' '`
 
 REBAR=./rebar
@@ -40,7 +41,7 @@ case $COMMAND in
 	stop)
 		echo "stopping ebosh ..."
 		$EXEC \
-		-name "stop-$NODE" \
+		$NODE_OPTS "stop-$NODE" \
 		$COOKIE_OPTS \
 		-eval "rpc:call('$NODE', init, stop, [])" \
 		-noshell \
@@ -51,7 +52,7 @@ case $COMMAND in
 	debug)
 		echo "entering ebosh debug console ..."
 		$EXEC \
-		-name "attach-$NODE" \
+		$NODE_OPTS "attach-$NODE" \
 		$COOKIE_OPTS \
 		-remsh $NODE \
 		-hidden
@@ -60,7 +61,7 @@ case $COMMAND in
 	ping)
 		echo "pinging $NODE ..."
 		$EXEC \
-		-name "ping-$NODE" \
+		$NODE_OPTS "ping-$NODE" \
 		$COOKIE_OPTS \
 		-eval \
 		"case net_adm:ping('$NODE') of \
@@ -88,7 +89,7 @@ case $COMMAND in
 	doc)
 		echo "generating docs"
 		$EXEC \
-		-name "doc-$NODE" \
+		$NODE_OPTS "doc-$NODE" \
 		$COOKIE_OPTS \
 		-eval \
 		"edoc:application( \

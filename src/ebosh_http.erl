@@ -67,12 +67,11 @@ stream(Body, ResFun, SetOptFun) when is_function(ResFun) andalso is_function(Set
 
 wait_for_bosh_response(BoshPid, ResFun, SetOptFun) ->
 	SetOptFun([{active, once}]),
-	
 	receive
 		{?EBOSH_RESPONSE_MSG, BoshPid, Header, Body} ->
 			lager:debug("got response body ~p", [Body]),
 			ResFun({200, Header, Body});
-		{tcp_closed, Socket} ->
+		{tcp_closed, _Socket} ->
 			lager:debug("client closed connection"),
 			exit(normal);
 		Any ->

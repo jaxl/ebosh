@@ -36,31 +36,28 @@
     process/2
     ]).
 
--include_lib("ebosh_session.hrl").
 -include("ejabberd.hrl").
 -include("jlib.hrl").
 -include("ejabberd_http.hrl").
+
+-define(EBOSH_NODE, 'ebosh@localhost').
 
 %%%----------------------------------------------------------------------
 %%% REQUEST HANDLERS
 %%%----------------------------------------------------------------------
 
-process(["http-ebosh-bind"], Req) ->
-	?DEBUG("got req ~p", [Req]),
+process(LocalPath, Req) ->
+	?DEBUG("got req ~p on local path ~p", [Req, LocalPath]),
 	case Req#request.method of
-		"POST" ->
-			Body = Req#request.data,
-			?DEBUG("got req body ~p", [Body]),
-			ResFun = fun(BoshPid) -> wait_for_bosh_response(Req, BoshPid) end,
-			ErrFun = fun(Res) -> Res end,
-			ebosh_session:stream(Body, ResFun, ErrFun);
-		"GET" ->
+		'POST' ->
+			stream(Req);
+		'GET' ->
 			?DEBUG("got ~p", [Req]),
 			{501, [], []};
-		"HEAD" ->
+		'HEAD' ->
 			?DEBUG("got ~p", [Req]),
 			{501, [], []};
-		"OPTIONS" ->
+		'OPTIONS' ->
 			?DEBUG("got ~p", [Req]),
 			{501, [], []};
 		_ ->
@@ -74,25 +71,34 @@ process(["http-ebosh-bind"], Req) ->
 
 start(Host, _Opts) ->
 	?DEBUG("mod ebosh starting for host ~p", [Host]),
-    ebosh:start().
+	ok.
 
 stop(Host) ->
 	?DEBUG("mod ebosh stopping for host ~p", [Host]),
-    ebosh:stop().
+	ok.
 
 %%%----------------------------------------------------------------------
 %%% INTERNAL METHODS
 %%%----------------------------------------------------------------------
 
-wait_for_bosh_response(Req, BoshPid) ->
-	receive
-		{?EBOSH_RESPONSE_MSG, Header, Body} ->
-			?DEBUG("got response body ~p", [Body]),
-			{200, Header, Body};
-		{tcp_closed, _Socket} ->
-			?DEBUG("client closed connection", []),
-			exit(normal);
-		Any ->
-			?DEBUG("rcvd unhandled ~p", [Any]),
-			wait_for_bosh_response(Req, BoshPid)
+stream(Req) ->
+	Body = Req#request.data,
+	
+	ResFun = 
+		fun({RCode, RHeader, RBody}) ->
+				{RCode, RHeader, RBody}
+		end,
+	
+	SetOptFun =
+		fun(_Opts) ->
+				ok
+		end,
+	
+	case catch rpc:call(?EBOSH_NODE, ebosh_http, stream, [Body, ResFun, SetOptFun], infinity) of
+		{badrpc, Reason} ->
+			?DEBUG("rpc failed reason ~p", [Reason]),
+			{500, [], []};
+		Ret ->
+			?DEBUG("rpc call succeeded with ret ~p", [Ret]),
+			Ret
 	end.
