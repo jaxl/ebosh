@@ -97,7 +97,7 @@ ebosh require following external libraries.
 
 * [exmpp](https://github.com/abhinavsingh/exmpp/) for xmpp client management
 * [mochiweb](https://github.com/abhinavsingh/mochiweb/) or [cowboy](https://github.com/abhinavsingh/cowboy/) for http web server
-* [lager](https://github/abhinavsingh/lager/) for logging facilityYou can run ebosh either with mochiweb, cowboy or even your own custom erlang server.
+* [lager](https://github.com/abhinavsingh/lager/) for logging facilityYou can run ebosh either with mochiweb, cowboy or even your own custom erlang server.
 <br></br>
 
 ebosh requires a patched version of exmpp to work with.
