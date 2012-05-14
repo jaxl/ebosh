@@ -28,12 +28,12 @@ Quick Start Guide
 
 ### get ebosh
 
-get the source and compile<pre>
+download and compile<pre>
 PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
 PROMPT> cd ebosh
 PRMOPT> chmod +x ebosh
 PROMPT> ./ebosh rebar
-PROMPT> ./ebosh deps
+PROMPT> ./ebosh get-deps
 PROMPT> ./ebosh compile
 PROMPT>
 </pre>
@@ -58,7 +58,7 @@ Point your bosh clients to http://127.0.0.1:9696/http-bind
 ### debug
 
 debug ebosh by entering corresponding erlang console<pre>
-PROMPT> ./ebosh ctl
+PROMPT> ./ebosh debug
 Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
 
 Eshell V5.8.5  (abort with ^G)
