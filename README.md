@@ -65,12 +65,12 @@ Point your bosh clients to http://127.0.0.1:9696/http-bind
 Configuration Parameters
 -------------------------
 Edit `ebosh.config` for your custom port and path configuration. Following options are available:
-* http_lib			"mochiweb" | "cowboy"
-* http_port         9696
-* https_port        9697
-* http_bind_path    "/http-bind"
-* https_certfile    "priv/cert/server.crt"
-* https_keyfile     "priv/cert/server.key"
+* `http_lib`          "mochiweb" | "cowboy"
+* `http_port`         9696
+* `https_port`        9697
+* `http_bind_path`    "/http-bind"
+* `https_certfile`    "priv/cert/server.crt"
+* `https_keyfile`     "priv/cert/server.key"
 
 Dependencies
 -------------
