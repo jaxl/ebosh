@@ -73,10 +73,10 @@ BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
        (v)ersion (k)ill (D)b-tables (d)istribution
 ^C
 PROMPT> toolbar:start().
-PROMPT> 
+PROMPT>
 </pre>
-	
-press `CNTL+C' quit debug mode
+
+press `CNTL+C' to quit debug mode
 
 ### stop
 	
