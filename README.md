@@ -17,8 +17,8 @@ You can run ebosh either with mochiweb, cowboy or even your own custom erlang se
 
 ebosh requires a patched version of exmpp to work with. You can obtain the 
 patched version in two ways:
-* git clone git://github.com/abhinavsingh/exmpp.git
-* patch src/network/exmpp_session.erl of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
+* `git clone git://github.com/abhinavsingh/exmpp.git`
+* patch `src/network/exmpp_session.erl` of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
 
 Usage
 ------
