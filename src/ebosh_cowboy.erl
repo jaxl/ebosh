@@ -60,7 +60,6 @@ stop() ->
 %% Behaviour methods
 %%
 init({_Any, http}, Req, []) ->
-	lager:debug("req inited"),
 	{ok, Req, undefined}.
 
 handle(Req, State) ->
@@ -92,7 +91,6 @@ handle(Req, State) ->
 	end.
 
 terminate(_Req, _State) ->
-	lager:debug("req terminated"),
 	ok.
 
 %%
@@ -102,14 +100,13 @@ get_srvr_name(Port) ->
 	list_to_atom(atom_to_list(?MODULE) ++ "_" ++ integer_to_list(Port)).
 
 wait_for_bosh_response(Req, State, BoshPid) ->
-	lager:debug("got to wait_for_bosh_response"),
 	Trans = Req#http_req.transport,
 	Socket = Req#http_req.socket,
 	Trans:setopts(Socket, [{active, once}]),
 	
 	receive
 		{?EBOSH_RESPONSE_MSG, Header, Body} ->
-			lager:debug("got response body ~p and header ~p", [Body, Header]),
+			lager:debug("got response body ~p", [Body]),
 			{ok, Req1} = cowboy_http_req:reply(200, Header, Body, Req),
 			{ok, Req1, State};
 		{tcp_closed, Socket} ->

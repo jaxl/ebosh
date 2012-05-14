@@ -78,7 +78,7 @@
 %% --------------------------------------------------------------------
 %% Exports
 %% --------------------------------------------------------------------
--export([start_link/1, stream/2, stream/3]).
+-export([start_super/1, start_link/1, stream/2, stream/3]).
 -export([parse_body/1, gen_sid/0, is_valid_session_start_pkt/1, get_attr/2, gen_attrs/1]).
 -export([is_alive/1, get_proc_name/1]).
 
@@ -165,6 +165,11 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+start_super(Sid) ->
+	ProcName = get_proc_name(Sid),
+	Spec = {ProcName, {?MODULE, start_link, [Sid]}, temporary, 2000, worker, [?MODULE]},
+	supervisor:start_child(ebosh_sup, Spec).
+
 -spec start_link(sid()) -> {ok, pid()}.
 start_link(Sid) ->
 	ProcName = get_proc_name(Sid),
@@ -194,7 +199,7 @@ stream(Body, ResFun, ErrFun) when is_function(ResFun) andalso is_function(ErrFun
 				true ->
 					%% valid session start pkt
 					Sid = ebosh_session:gen_sid(),
-					{ok, BoshPid} = ebosh_session:start_link(Sid),
+					{ok, BoshPid} = ebosh_session:start_super(Sid),
 					ebosh_session:stream(Sid, XmlEl, BodySize),
 					ResFun(BoshPid);
 				false ->
