@@ -71,9 +71,25 @@ case $COMMAND in
 	clean)
 		$REBAR clean
 		;;
-		
+	
 	test)
 		$REBAR skip_deps=true eunit
+		;;
+	
+	analyze)
+		$REBAR skip_deps=true dialyze
+		;;
+	
+	doc)
+		echo "generating docs"
+		$EXEC \
+		-name "doc-$NODE" \
+		$COOKIE_OPTS \
+		-eval \
+		"edoc:application(ebosh, \".\", [{doclet, edown_doclet},{app_default, \"http://www.erlang.org/doc/man\"},{top_level_readme, {\"./README.md\", \"http://github.com/abhinavsingh/ebosh\"}}])" \
+		-noshell \
+		-hidden \
+		-s init stop
 		;;
 	
 	deps)

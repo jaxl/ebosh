@@ -485,7 +485,7 @@ handle_info(?MAX_WAIT_TIMEOUT_MSG,
 											out_bytes=OutBytes1}};
 
 %% @doc handle max inactivity timeout on client
-handle_info(?MAX_WAIT_INACTIVITY_MSG, 
+handle_info(?MAX_INACTIVITY_TIMEOUT_MSG, 
 			_StateName, 
 			StateData) ->
 	lager:debug("max inactivity timeout, shutting down"),

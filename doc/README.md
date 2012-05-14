@@ -1,4 +1,7 @@
+
+
 #`ebosh' - a BOSH connection manager written on top of erlang otp principles#
+
 
 Copyright (c) 2011-2012 Abhinav Singh
 
@@ -87,16 +90,18 @@ patched version in two ways:
 * `git clone git://github.com/abhinavsingh/exmpp.git`
 * patch `src/network/exmpp_session.erl` of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
 
+
 ##Modules##
 
+
 <table width="100%" border="0" summary="list of modules">
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh.md" class="module">ebosh</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_app.md" class="module">ebosh_app</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_cowboy.md" class="module">ebosh_cowboy</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_ejabberd.md" class="module">ebosh_ejabberd</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_mochiweb.md" class="module">ebosh_mochiweb</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_session.md" class="module">ebosh_session</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_stream.md" class="module">ebosh_stream</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_sup.md" class="module">ebosh_sup</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/shaper.md" class="module">shaper</a></td></tr></table>
+<tr><td><a href="ebosh.md" class="module">ebosh</a></td></tr>
+<tr><td><a href="ebosh_app.md" class="module">ebosh_app</a></td></tr>
+<tr><td><a href="ebosh_cowboy.md" class="module">ebosh_cowboy</a></td></tr>
+<tr><td><a href="ebosh_ejabberd.md" class="module">ebosh_ejabberd</a></td></tr>
+<tr><td><a href="ebosh_mochiweb.md" class="module">ebosh_mochiweb</a></td></tr>
+<tr><td><a href="ebosh_session.md" class="module">ebosh_session</a></td></tr>
+<tr><td><a href="ebosh_stream.md" class="module">ebosh_stream</a></td></tr>
+<tr><td><a href="ebosh_sup.md" class="module">ebosh_sup</a></td></tr>
+<tr><td><a href="shaper.md" class="module">shaper</a></td></tr></table>
 

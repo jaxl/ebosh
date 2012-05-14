@@ -1,0 +1,4 @@
+{application,ebosh}.
+{packages,[]}.
+{modules,[ebosh,ebosh_app,ebosh_cowboy,ebosh_ejabberd,ebosh_mochiweb,
+          ebosh_session,ebosh_stream,ebosh_sup,shaper]}.

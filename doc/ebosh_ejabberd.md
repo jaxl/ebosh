@@ -1,0 +1,5 @@
+
+
+#Module ebosh_ejabberd#
+
+
