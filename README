@@ -1,48 +1,54 @@
-ebosh:
-------
+ebosh
+======
 A work in progress, not yet ready for production use
 
 ebosh is a BOSH connection manager written on top of erlang otp principles.
-Specification about BOSH can be found here:
-http://xmpp.org/extensions/xep-0124.html
+Specification about BOSH can be found [here](http://xmpp.org/extensions/xep-0124.html)
 
+Dependencies
+-------------
 ebosh require following external libraries.
 
-Reason                      Library
---------------------------------------------
-xmpp client management      exmpp-patched
-http web server             mochiweb-v2.3.1
-http web server             cowboy-0.4.0
-logging                     lager-1.0.0
+* [exmpp](https://github.com/abhinavsingh/exmpp/) for xmpp client management
+* [mochiweb](https://github.com/abhinavsingh/mochiweb/) or [cowboy](https://github.com/abhinavsingh/cowboy/) for http web server
+* [lager](https://github/abhinavsingh/lager/) for logging facility
 
-You can choose to run ebosh either with mochiweb or cowboy http library.
-If you have your own custom erlang server, you can even plug ebosh with that.
+You can run ebosh either with mochiweb, cowboy or even your own custom erlang server.
 
-Do one of the following to get exmpp-patched for ebosh:
-1) git clone git://github.com/abhinavsingh/exmpp.git
-2) or apply following patch to src/network/exmpp_session.erl file in your exmpp install
-   https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c
+ebosh requires a patched version of exmpp to work with. You can obtain the 
+patched version in two ways:
+* git clone git://github.com/abhinavsingh/exmpp.git
+* patch src/network/exmpp_session.erl of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
 
-Usage:
+Usage
 ------
-Clone, compile and start ebosh
+
+### get the source and compile
 
 PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
 PROMPT> cd ebosh && chmod +x ebosh
 PROMPT> ./ebosh rebar && ./ebosh deps
-PROMPT> ./ebosh compile && ./ebosh start
+PROMPT> ./ebosh compile
 PROMPT>
 
-Point your bosh clients to http://127.0.0.1:9696/http-bind
-Edit ebosh.config for your custom port and path
+### start ebosh
 
+PROMPT> ./ebosh start
+starting ebosh ...
+PROMPT> 
+
+### test ebosh
+
+Point your bosh clients to http://127.0.0.1:9696/http-bind
+Edit ebosh.config for your custom port and path configuration.
 Ping ebosh to test if it's running
+
 PROMPT> ./ebosh ping
 pinging ebosh@127.0.0.1 ...
 running
 PROMPT> 
 
-Attach to ebosh erlang console
+### debug ebosh
 
 PROMPT> ./ebosh ctl
 Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
@@ -54,7 +60,7 @@ BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
 ^C
 PROMPT>
 
-Stop ebosh
+### stop ebosh
 
 PROMPT> ./ebosh stop
 PROMPT> ./ebosh ping
