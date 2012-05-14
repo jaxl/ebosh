@@ -23,6 +23,14 @@ case $COMMAND in
 		-noshell \
 		-detached
 		;;
+		
+	console)
+		echo "starting ebosh and attaching to debug console..."
+		$EXEC \
+		-args_file vm.args \
+		-config ebosh.config \
+		-s ebosh
+		;;
 	
 	restart)
 		$0 stop
@@ -40,8 +48,8 @@ case $COMMAND in
 		-s init stop
 		;;
 	
-	ctl)
-		echo "entering ebosh console ..."
+	debug)
+		echo "entering ebosh debug console ..."
 		$EXEC \
 		-name "attach-$NODE" \
 		$COOKIE_OPTS \
@@ -94,11 +102,11 @@ case $COMMAND in
 		-s init stop
 		;;
 	
-	deps)
+	get-deps)
 		$REBAR get-deps
 		;;
 		
-	update)
+	update-deps)
 		$REBAR update-deps
 		;;
 		
@@ -108,7 +116,7 @@ case $COMMAND in
 		;;
 	
 	*)
-		echo "Usage: $0 {start|restart|stop|ctl|ping|compile|clean|test|doc|deps|update|rebar}"
+		echo "Usage: $0 {start|console|restart|stop|debug|ping|compile|clean|test|doc|get-deps|update-deps|rebar}"
 		exit 1
 		
 esac
