@@ -3,7 +3,11 @@
 @version 0.0.1
 @title `ebosh' - a BOSH connection manager written on top of erlang otp principles
 
-@doc `ebosh' - a work in progress, not yet ready for production use
+@doc 
+
+ebosh
+======
+a work in progress, not yet ready for production use
 
 ebosh is a <a href="http://xmpp.org/extensions/xep-0124.html">BOSH</a> connection manager written on top of erlang otp principles.
 
@@ -21,7 +25,7 @@ Quick Start Guide
 ------------------
 
 ### get the source and compile
-	
+
 	<pre>
 	PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
 	PROMPT> cd ebosh
@@ -39,7 +43,7 @@ Quick Start Guide
 	starting ebosh ...
 	PROMPT> 
 	</pre>
-	
+
 ### test
 
 Ping ebosh to test if it's running
@@ -50,7 +54,7 @@ Ping ebosh to test if it's running
 	running
 	PROMPT> 
 	</pre>
-	
+
 Point your bosh clients to http://127.0.0.1:9696/http-bind
 
 ### debug
@@ -67,7 +71,7 @@ Point your bosh clients to http://127.0.0.1:9696/http-bind
 	PROMPT> toolbar:start().
 	PROMPT> 
 	</pre>
-	
+
 ### stop
 
 	<pre>
@@ -76,7 +80,7 @@ Point your bosh clients to http://127.0.0.1:9696/http-bind
 	pinging ebosh@127.0.0.1 ...
 	not running
 	</pre>
-	
+
 Configuration Parameters
 -------------------------
 Edit `ebosh.config' for your custom port and path configuration. Following options are available:

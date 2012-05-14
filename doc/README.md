@@ -9,7 +9,9 @@ __Version:__ 0.0.1
 
 __Authors:__ Abhinav Singh ([`me@abhinavsingh.com`](mailto:me@abhinavsingh.com)).
 
-`ebosh` - a work in progress, not yet ready for production use
+ebosh
+======
+a work in progress, not yet ready for production use
 
 ebosh is a [BOSH](http://xmpp.org/extensions/xep-0124.md) connection manager written on top of erlang otp principles.
 

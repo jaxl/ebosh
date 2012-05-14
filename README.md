@@ -1,4 +1,7 @@
+
+
 #`ebosh' - a BOSH connection manager written on top of erlang otp principles#
+
 
 Copyright (c) 2011-2012 Abhinav Singh
 
@@ -6,7 +9,9 @@ __Version:__ 0.0.1
 
 __Authors:__ Abhinav Singh ([`me@abhinavsingh.com`](mailto:me@abhinavsingh.com)).
 
-`ebosh` - a work in progress, not yet ready for production use
+ebosh
+======
+a work in progress, not yet ready for production use
 
 ebosh is a [BOSH](http://xmpp.org/extensions/xep-0124.md) connection manager written on top of erlang otp principles.
 
@@ -87,7 +92,9 @@ patched version in two ways:
 * `git clone git://github.com/abhinavsingh/exmpp.git`
 * patch `src/network/exmpp_session.erl` of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
 
+
 ##Modules##
+
 
 <table width="100%" border="0" summary="list of modules">
 <tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh.md" class="module">ebosh</a></td></tr>
