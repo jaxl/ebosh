@@ -8,7 +8,7 @@ http://xmpp.org/extensions/xep-0124.html
 
 ebosh require following external libraries.
 
-Reason						Library
+Reason                      Library
 --------------------------------------------
 xmpp client management      exmpp-patched
 http web server             mochiweb-v2.3.1
