@@ -1,0 +1,48 @@
+mod_ebosh is a ejabberd module
+
+Install:
+--------
+./eboshctl compile-mod
+sudo ./eboshctl install-mod
+
+Setup:
+------
+1) enable mod_ebosh inside ejabberd.cfg
+   if you wish to replace ejabberd inbuilt bosh server,
+   also disable mod_http_bind as shown below
+
+	{modules, [
+		...
+		...
+		%%{mod_http_bind, []},
+		{mod_ebosh, []},
+		...
+		...
+	}
+
+2) configure a request handler for mod_ebosh inside ejabberd.cfg
+
+	{5280, ejabberd_http, [
+		{request_handlers, [
+			{["http-bind"], mod_ebosh}
+		]},
+		...
+		...
+	}
+
+3) restart ejabberd
+4) Update erlang cookie and node name as required inside `eboshctl`
+5) start ebosh
+6) enter ebosh debug console and ping ejabberd node
+	
+	PROMPT> ./eboshctl debug
+	Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
+
+	Eshell V5.8.5  (abort with ^G)
+	(ebosh@127.0.0.1)1> ebosh:ping('ejabberd@localhost').
+
+Working:
+--------
+3) It accepts incoming http requests configured on a specific path
+2) RPC request body to ebosh application node
+3) Waits for the response

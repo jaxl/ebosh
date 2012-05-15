@@ -32,23 +32,23 @@ download and compile<pre>
 PROMPT> git clone git://github.com/abhinavsingh/ebosh.git
 PROMPT> cd ebosh
 PRMOPT> chmod +x ebosh
-PROMPT> ./ebosh rebar
-PROMPT> ./ebosh get-deps
-PROMPT> ./ebosh compile
+PROMPT> ./eboshctl rebar
+PROMPT> ./eboshctl get-deps
+PROMPT> ./eboshctl compile
 PROMPT>
 </pre>
 
 ### start
 
 start ebosh<pre>
-PROMPT> ./ebosh start
+PROMPT> ./eboshctl start
 starting ebosh ...
 PROMPT></pre>
 
 ### test
 
 Ping ebosh to test if it's running<pre>
-PROMPT> ./ebosh ping
+PROMPT> ./eboshctl ping
 pinging ebosh@127.0.0.1 ...
 running
 PROMPT></pre>
@@ -58,7 +58,7 @@ Point your bosh clients to http://127.0.0.1:9696/http-bind
 ### debug
 
 debug ebosh by entering corresponding erlang console<pre>
-PROMPT> ./ebosh debug
+PROMPT> ./eboshctl debug
 Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
 
 Eshell V5.8.5  (abort with ^G)
@@ -74,8 +74,8 @@ press `CNTL+C` to quit debug mode
 ### stop
 
 stop ebosh<pre>
-PROMPT> ./ebosh stop
-PROMPT> ./ebosh ping
+PROMPT> ./eboshctl stop
+PROMPT> ./eboshctl ping
 pinging ebosh@127.0.0.1 ...
 not running
 </pre>

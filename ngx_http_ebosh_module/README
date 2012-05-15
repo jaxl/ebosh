@@ -1,0 +1,5 @@
+ngx_http_ebosh_module is a nginx module which forwards incoming 
+http request to ebosh erlang application node for bosh processing
+
+It is experimental and mostly an extension over Nick's work here:
+https://github.com/ngerakines/erlang_nginx
