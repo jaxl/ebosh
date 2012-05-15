@@ -62,11 +62,10 @@ PROMPT> ./ebosh debug
 Erlang R14B04 (erts-5.8.5) [source] [64-bit] [smp:4:4] [rq:4] [async-threads:5] [hipe] [kernel-poll:true]
 
 Eshell V5.8.5  (abort with ^G)
-(ebosh@127.0.0.1)1>
+(ebosh@127.0.0.1)1> toolbar:start().
 BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
        (v)ersion (k)ill (D)b-tables (d)istribution
 ^C
-PROMPT> toolbar:start().
 PROMPT>
 </pre>
 
@@ -117,7 +116,7 @@ You can obtain the patched version in two ways:
 <tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh.md" class="module">ebosh</a></td></tr>
 <tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_app.md" class="module">ebosh_app</a></td></tr>
 <tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_cowboy.md" class="module">ebosh_cowboy</a></td></tr>
-<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_ejabberd.md" class="module">ebosh_ejabberd</a></td></tr>
+<tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_http.md" class="module">ebosh_http</a></td></tr>
 <tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_mochiweb.md" class="module">ebosh_mochiweb</a></td></tr>
 <tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_session.md" class="module">ebosh_session</a></td></tr>
 <tr><td><a href="http://github.com/abhinavsingh/ebosh/blob/master/doc/ebosh_stream.md" class="module">ebosh_stream</a></td></tr>

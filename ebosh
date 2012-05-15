@@ -9,6 +9,12 @@ EXEC="$ERL $ERL_OPTS"
 COOKIE_OPTS=`grep '^-setcookie' vm.args`
 NODE_OPTS=`egrep '^-s?name' vm.args | cut -f1 -d' '`
 NODE=`egrep '^-s?name' vm.args | cut -f2 -d' '`
+ERL_INTERFACE_DIR=/usr/local/lib/erlang/lib/erl_interface-3.7.5
+ERL_INTERFACE_LDFLAGS="-lerl_interface -lei"
+
+## nginx ebosh module
+NGX_SRC_DIR=/Users/abhinavsingh/Documents/nginx-1.2.0
+NGX_EBOSH_SRC_DIR=/Users/abhinavsingh/git/ebosh/ngx_http_ebosh_module/src 
 
 REBAR=./rebar
 REBAR_URL=http://cloud.github.com/downloads/basho/rebar/rebar
@@ -50,7 +56,7 @@ case $COMMAND in
 		;;
 	
 	debug)
-		echo "entering ebosh debug console ..."
+		echo "entering ebosh debug console ... press CNTR+C, CNTR+C to exit"
 		$EXEC \
 		$NODE_OPTS "attach-$NODE" \
 		$COOKIE_OPTS \
@@ -126,6 +132,16 @@ case $COMMAND in
 	## install mod_ebosh
 	install-mod)
 		cp ebin/mod_ebosh.beam /lib/ejabberd/ebin/
+		;;
+	
+	compile-nginx)
+		cd $NGX_SRC_DIR
+		
+		./configure \
+		--add-module=$NGX_EBOSH_SRC_DIR \
+		--with-ld-opt="-I$ERL_INTERFACE_DIR/include -L$ERL_INTERFACE_DIR/lib $ERL_INTERFACE_LDFLAGS" \
+		--with-cc-opt="-I$ERL_INTERFACE_DIR/include -L$ERL_INTERFACE_DIR/lib"
+		make
 		;;
 	
 	*)
