@@ -126,7 +126,7 @@ case $COMMAND in
 	## compile mod_ebosh for ejabberd
 	compile-mod)
 		echo "compiling mod_ebosh"
-		erlc -I/lib/ejabberd/include -I/lib/ejabberd/include/web -Iinclude -pa /lib/ejabberd/ebin -o ebin/ ejabberd/mod_ebosh.erl
+		erlc -I/lib/ejabberd/include -I/lib/ejabberd/include/web -Iinclude -pa /lib/ejabberd/ebin -o ebin/ mod_ebosh/mod_ebosh.erl
 		;;
 	
 	## install mod_ebosh
