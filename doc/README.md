@@ -96,7 +96,9 @@ ebosh require following external libraries.
 
 * [exmpp](https://github.com/abhinavsingh/exmpp/) for xmpp client management
 * [mochiweb](https://github.com/abhinavsingh/mochiweb/) or [cowboy](https://github.com/abhinavsingh/cowboy/) for http web server
-* [lager](https://github.com/abhinavsingh/lager/) for logging facilityYou can run ebosh either with mochiweb, cowboy or even your own custom erlang server.
+* [lager](https://github.com/abhinavsingh/lager/) for logging facility
+
+You can run ebosh either with mochiweb, cowboy or even your own custom erlang server.
 <br></br>
 
 ebosh requires a patched version of exmpp to work with.
@@ -106,7 +108,9 @@ You can obtain the patched version in two ways:
 <br></br>
 
 * `git clone git://github.com/abhinavsingh/exmpp.git`
-* patch `src/network/exmpp_session.erl` of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
+* patch `src/network/exmpp_session.erl` of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)History
+--------
+ebosh was developed for jaxl.com/jaxl.im infrastructure needs
 
 
 ##Modules##

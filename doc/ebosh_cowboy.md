@@ -5,7 +5,7 @@
 * [Function Details](#functions)
 
 
-__Behaviours:__ [`cowboy_http_handler`](/Users/abhinavsingh/git/ebosh/deps/cowboy/doc/cowboy_http_handler.md).<a name="index"></a>
+__Behaviours:__ [`cowboy_http_handler`](cowboy_http_handler.md).<a name="index"></a>
 
 ##Function Index##
 
