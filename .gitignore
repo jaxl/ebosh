@@ -3,3 +3,4 @@ deps/
 ebin/
 log/
 rebar
+.ebosh_dialyzer.plt
