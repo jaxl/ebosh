@@ -26,7 +26,7 @@
 %% Include files
 %%
 -include_lib("ebosh_session.hrl").
--include_lib("deps/cowboy/include/http.hrl").
+-include_lib("../deps/cowboy/include/http.hrl").
 
 %%
 %% Exported Functions

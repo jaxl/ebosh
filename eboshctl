@@ -16,6 +16,9 @@ ERL_INTERFACE_LDFLAGS="-lerl_interface -lei"
 NGX_SRC_DIR=/Users/abhinavsingh/Documents/nginx-1.2.0
 NGX_EBOSH_SRC_DIR=/Users/abhinavsingh/git/ebosh/ngx_http_ebosh_module/src 
 
+DIALYZER=`which dialyzer`
+PLT_PATH=.ebosh_dialyzer.plt
+
 REBAR=./rebar
 REBAR_URL=http://cloud.github.com/downloads/basho/rebar/rebar
 
@@ -90,6 +93,19 @@ case $COMMAND in
 	
 	test)
 		$REBAR skip_deps=true eunit
+		;;
+	
+	build-plt)
+		$DIALYZER \
+		--build_plt \
+		--output_plt $PLT_PATH \
+		--apps kernel stdlib crypto ssl inets exmpp deps/*/ebin
+		;;
+	
+	dialyze)
+		$DIALYZER --src src \
+		--plt $PLT_PATH \
+		-Werror_handling -Wrace_conditions -Wunmatched_returns -Wunderspecs
 		;;
 	
 	doc)

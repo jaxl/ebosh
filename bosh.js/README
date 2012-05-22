@@ -1,0 +1,12 @@
+bosh.js is a javascript library written on top of strophe.js
+
+Features:
+----------
+1) multi-stream support
+2) request and response ack
+3) key sequence protection
+4) support for long polling, chunked encoding, jsonp and websockets bosh requests
+5) provide easy javascript development api which allows developer
+   to not to focus on underlying xmpp protocol or it's working.
+   Also implements a lot of functionalities/features to make 
+   real-time frontend xmpp clients development fun
