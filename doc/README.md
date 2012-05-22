@@ -108,7 +108,10 @@ You can obtain the patched version in two ways:
 <br></br>
 
 * `git clone git://github.com/abhinavsingh/exmpp.git`
-* patch `src/network/exmpp_session.erl` of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)History
+* patch `src/network/exmpp_session.erl` of exmpp source with this [patch](https://github.com/abhinavsingh/exmpp/commit/580d736ad9c6c776ee1cc83bdcf2f63ca9096b2c)
+
+<br></br>
+History
 --------
 ebosh was developed for jaxl.com/jaxl.im infrastructure needs
 
